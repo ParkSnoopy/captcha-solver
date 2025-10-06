@@ -1,0 +1,13 @@
+[project]
+name = "captcha-solver"
+version = "0.1.0"
+description = "CAPTCHA solver AI"
+requires-python = ">=3.13"
+dependencies = [
+    "matplotlib>=3.10",
+    "notebook>=7.4",
+    "numpy>=2.3",
+    "pillow>=11.3",
+    "torch>=2.8",
+    "torchvision>=0.23",
+]
