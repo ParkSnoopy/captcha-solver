@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as T
-from torchvision.models import efficientnet_b1, EfficientNet_B1_Weights
+#from torchvision.models import efficientnet_b1, EfficientNet_B1_Weights
 from torch.utils.data import Dataset, DataLoader, random_split
 from PIL import Image
 from pathlib import Path
@@ -17,8 +17,8 @@ DATA_DIR = "./data/ready/"
 TRAIN_PERC = 0.90
 EPOCHS = 20
 
-USED_MODEL = efficientnet_b1
-USED_WEIGHT = EfficientNet_B1_Weights
+#USED_MODEL = efficientnet_b1
+#USED_WEIGHT = EfficientNet_B1_Weights
 
 #OUT_FEATURES = 200000 # 62**5
 
@@ -39,7 +39,7 @@ TRANSFORM = T.Compose([
 
 #_table = {k:f"{i:02}" for i, k in enumerate("qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890")}
 _table  = {k:i for i, k in enumerate("qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890")}
-_rtable = {v:k for k,v in _table.items()}
+_rtable = {i:k for k,i in _table.items()}
 
 def _strlabel_to_int(label:str) -> str:
     # DANGER: return `str` as output, not `int`
@@ -54,6 +54,116 @@ def _int_to_strlabel(num:int) -> str:
         ''.join(map(lambda c: _rtable[c[0]+c[1]], batched(num, 2)))
     );
 
+# Self-Defined Dataset
+class CaptchaDataset(Dataset):
+    def __init__(self, img_paths: list[Path], transform=None):
+        self.img_paths = img_paths
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.img_paths)
+
+    def __getitem__(self, idx):
+        img_path = self.img_paths[idx]
+        img = Image.open(img_path).convert("RGB")
+
+        if self.transform:
+            img = self.transform(img)
+
+        label = img_path.stem.split('.')[0]
+
+        label_idxs = [ _table[c] for c in label ]
+        label_tensor = torch.tensor(label_idxs, dtype=torch.long)
+        return img, label_tensor
+
+# CNN + RNN
+class CaptchaModel(nn.Module):
+    # (26 lowercase letters + 26 uppercase letters + 10 digits = 62 classes)
+
+    def __init__(self, num_classes, captcha_length, input_channels=3, image_width=256, image_height=256):
+        super(CaptchaModel, self).__init__()
+
+        # Define CNN
+        self.cnn = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),  # Output size: 128x128
+
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),  # Output size: 64x64
+
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),  # Output size: 32x32
+
+            nn.Conv2d(128, 256, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),  # Output size: 16x16
+
+            nn.Conv2d(256, 512, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),  # Output size: 8x8
+        )
+
+        # After the CNN, the feature map size is 256 x 16 x 16
+        self.cnn_output_size = 512 * 8 * 8
+
+        # Define 5 separate linear heads, one for each character position
+        self.classifier = nn.ModuleList([
+            nn.Linear(self.cnn_output_size, num_classes) for _ in range(captcha_length)
+        ])
+
+        self.dropout = nn.Dropout(0.5)
+
+        '''
+        # RNN for sequence prediction
+        self.rnn   = nn.LSTM(input_size=1024, hidden_size=256, num_layers=2, batch_first=True)
+
+        # Output layer for 5 characters, each mapped to a class
+        self.fc2   = nn.Linear(256, num_chars)
+        '''
+
+    def forward(self, x):
+        '''
+        # CNN layers
+        x = self.pool(
+            nn.ReLU()(self.conv1(x))
+        )
+        x = self.pool(
+            nn.ReLU()(self.conv2(x))
+        )
+
+        # Flatten before feeding into FC layer
+        x = x.view(x.size(0), -1)
+        x = nn.ReLU()(self.fc1(x))
+
+        # RNN layer for sequence prediction (for 5 characters, we treat it as a sequence)
+        x = x.unsqueeze(1)  # Add sequence dimension
+        x, _ = self.rnn(x)
+
+        # Decode output to get prediction per character in the sequence
+        x = self.fc2(x)
+
+        return x
+        '''
+        features = self.cnn(x)
+        features = features.view(
+            x.size(0),
+            -1,
+        )
+
+        features = self.dropout(features)
+
+        outputs = torch.stack([
+            head(features)
+            for head in self.classifier
+        ], dim=1)
+
+        return outputs
+
+
+
 def main():
 
     # Device setup
@@ -61,114 +171,6 @@ def main():
     if USE_GPU and not torch.cuda.is_available(): raise Exception("No GPU")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
-
-    # Self-Defined Dataset
-    class CaptchaDataset(Dataset):
-        def __init__(self, img_paths: list[Path], transform=None):
-            self.img_paths = img_paths
-            self.transform = transform
-
-        def __len__(self):
-            return len(self.img_paths)
-
-        def __getitem__(self, idx):
-            img_path = self.img_paths[idx]
-            img = Image.open(img_path).convert("RGB")
-
-            if self.transform:
-                img = self.transform(img)
-
-            label = img_path.stem.split('.')[0]
-
-            label_idxs = [ _table[c] for c in label ]
-            label_tensor = torch.tensor(label_idxs, dtype=torch.long)
-            return img, label_tensor
-
-    # CNN + RNN
-    class CaptchaModel(nn.Module):
-        # (26 lowercase letters + 26 uppercase letters + 10 digits = 62 classes)
-
-        def __init__(self, num_classes, captcha_length, input_channels=3, image_width=256, image_height=256):
-            super(CaptchaModel, self).__init__()
-
-            # Define CNN
-            self.cnn = nn.Sequential(
-                nn.Conv2d(3, 32, kernel_size=3, padding=1),
-                nn.ReLU(),
-                nn.MaxPool2d(2),  # Output size: 128x128
-
-                nn.Conv2d(32, 64, kernel_size=3, padding=1),
-                nn.ReLU(),
-                nn.MaxPool2d(2),  # Output size: 64x64
-
-                nn.Conv2d(64, 128, kernel_size=3, padding=1),
-                nn.ReLU(),
-                nn.MaxPool2d(2),  # Output size: 32x32
-
-                nn.Conv2d(128, 256, kernel_size=3, padding=1),
-                nn.ReLU(),
-                nn.MaxPool2d(2),  # Output size: 16x16
-
-                nn.Conv2d(256, 512, kernel_size=3, padding=1),
-                nn.ReLU(),
-                nn.MaxPool2d(2),  # Output size: 8x8
-            )
-
-            # After the CNN, the feature map size is 256 x 16 x 16
-            self.cnn_output_size = 512 * 8 * 8
-
-            # Define 5 separate linear heads, one for each character position
-            self.classifier = nn.ModuleList([
-                nn.Linear(self.cnn_output_size, num_classes) for _ in range(captcha_length)
-            ])
-
-            self.dropout = nn.Dropout(0.5)
-
-            '''
-            # RNN for sequence prediction
-            self.rnn   = nn.LSTM(input_size=1024, hidden_size=256, num_layers=2, batch_first=True)
-
-            # Output layer for 5 characters, each mapped to a class
-            self.fc2   = nn.Linear(256, num_chars)
-            '''
-
-        def forward(self, x):
-            '''
-            # CNN layers
-            x = self.pool(
-                nn.ReLU()(self.conv1(x))
-            )
-            x = self.pool(
-                nn.ReLU()(self.conv2(x))
-            )
-
-            # Flatten before feeding into FC layer
-            x = x.view(x.size(0), -1)
-            x = nn.ReLU()(self.fc1(x))
-
-            # RNN layer for sequence prediction (for 5 characters, we treat it as a sequence)
-            x = x.unsqueeze(1)  # Add sequence dimension
-            x, _ = self.rnn(x)
-
-            # Decode output to get prediction per character in the sequence
-            x = self.fc2(x)
-
-            return x
-            '''
-            features = self.cnn(x)
-            features = features.view(
-                x.size(0),
-                -1,
-            )
-
-            features = self.dropout(features)
-
-            outputs = torch.stack([
-                head(features)
-                for head in self.classifier
-            ], dim=1)
-
-            return outputs
 
     # Model, Loss, and Optimizer
     # 26 letters + 26 letters + 10 digits, 256x256 sized, 3 channel (RGB)
