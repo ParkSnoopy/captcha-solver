@@ -1,13 +1,34 @@
 [project]
 name = "captcha-solver"
-version = "0.1.1"
+version = "0.1.2"
 description = "CAPTCHA solver AI"
 requires-python = ">=3.13"
 dependencies = [
-    "matplotlib>=3.10",
-    "notebook>=7.4",
-    "numpy>=2.3",
-    "pillow>=11.3",
-    "torch>=2.8",
-    "torchvision>=0.23",
+    #"matplotlib",
+    "notebook",
+    "numpy",
+    "pillow",
+    "torch",
+    "torchvision",
+    "pytorch-triton-rocm",
+    "questionary",
 ]
+
+[tool.uv]
+index-strategy = "unsafe-best-match"
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-rocm" },
+]
+torchvision = [
+    { index = "pytorch-rocm" },
+]
+pytorch-triton-rocm = [
+    { index = "pytorch-rocm" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-rocm"
+url = "https://download.pytorch.org/whl/rocm6.4"
+explicit = true
