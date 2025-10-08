@@ -13,6 +13,7 @@ import random
 from model import (
     CaptchaDataset,
     CaptchaModel,
+    CaptchaModelV2,
 )
 from helper import (
     TRANSFORM,
@@ -24,6 +25,8 @@ from config import (
 
     EPOCHS,
 )
+
+USE_MODEL = CaptchaModelV2
 
 
 
@@ -37,7 +40,7 @@ def main():
 
     # Model, Loss, and Optimizer
     # 26 letters + 26 letters + 10 digits, 256x256 sized, 3 channel (RGB)
-    model = CaptchaModel(
+    model = USE_MODEL(
         num_classes   =62,
         captcha_length=5,
         input_channels=3,

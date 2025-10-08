@@ -13,6 +13,7 @@ from helper import (
 )
 from config import (
     DEBUG,
+    RAW_TENSOR,
     USE_GPU,
     TRAINED_DIR,
     DATA_DIR,
@@ -70,7 +71,7 @@ def main():
         with torch.no_grad():
             pred = model(img)
 
-            if DEBUG:
+            if RAW_TENSOR:
                 print()
                 print("  < RAW TENSOR >")
                 print(pred)

@@ -5,7 +5,7 @@ from PIL import Image
 from collections import Counter
 
 from config import (
-    MAX_W, MAX_H,
+    MAX_W, MAX_H, DEBUG,
 )
 
 
@@ -51,7 +51,30 @@ def rgb_from_rgba(img) -> Image:
     bg = Image.new("RGB", img.size, bg_color)
     return Image.alpha_composite(bg, img).convert('RGB')
 
-def reshape(img: Image) -> Image:
+def reshape(img: Image, _indent=1) -> Image:
+    # If image is too small, enlarge it
+    if img.width < 130:
+        mx = 150 / img.width
+        if DEBUG:
+            print(f"{'  '*_indent}- Resizing: `{mx:.3f}`x")
+        img = T.Resize(
+            (
+                int(mx * img.width),
+                int(mx * img.height),
+            )
+        )(img)
+    # If image is too large, make it smaller
+    if img.width > 256:
+        mx = 256 / img.width
+        if DEBUG:
+            print(f"{'  '*_indent}- Resizing: `{mx:.3f}`x")
+        img = T.Resize(
+            (
+                int(mx * img.width),
+                int(mx * img.height),
+            )
+        )(img)
+
     # Grayscale
     if len(img.size)==2 or img.size[2]==1:
         img = rgb_from_grayscale(img)
