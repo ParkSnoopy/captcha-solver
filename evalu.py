@@ -1,5 +1,3 @@
-from train import CaptchaModel, TRANSFORM, _rtable
-
 import numpy as np
 import torch
 
@@ -7,11 +5,18 @@ import questionary
 from PIL import Image
 from pathlib import Path
 
-USE_GPU = True
-DEBUG = False
-
-TRAINED_MODEL_PATH = "./trained/"
-EVALU_IMAGE_PATH = "./data/ready/"
+from model import CaptchaModel
+from helper import (
+    TRANSFORM,
+    _rtable,
+    reshape,
+)
+from config import (
+    DEBUG,
+    USE_GPU,
+    TRAINED_DIR,
+    DATA_DIR,
+)
 
 
 
@@ -24,7 +29,7 @@ def main():
 
     model_file_path = questionary.path(
         "Select model to use",
-        default=TRAINED_MODEL_PATH,
+        default=TRAINED_DIR,
         validate=check_is_file,
     ).ask();
 
@@ -35,19 +40,30 @@ def main():
         image_width   =256,
         image_height  =256,
     )
-    model.load_state_dict(
-        torch.load(model_file_path)
-    )
+
+    try:
+        # Legacy save format
+        model.load_state_dict(
+            torch.load(model_file_path)
+        )
+    except:
+        # Latest save format
+        model.load_state_dict(
+            torch.load(model_file_path)['model']
+        )
+
     model = model.to(device)
 
     while True:
         evaluation_file_path = questionary.path(
             "Select image to evaluate",
-            default=EVALU_IMAGE_PATH,
+            default=DATA_DIR,
             validate=check_is_file,
         ).ask();
 
+        # Open, Pad with dominant edge pixel, Resize to (256x256), ToTensor, Normalize
         img = Image.open(evaluation_file_path)
+        img = reshape(img)
         img = TRANSFORM(img).unsqueeze(0)
         img = img.to(device)
 
