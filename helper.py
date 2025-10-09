@@ -5,8 +5,6 @@ import numpy as np
 from PIL import Image
 from collections import Counter
 
-from tqdm import tqdm
-
 from config import (
     DEBUG,
     DEVICE,
@@ -16,7 +14,6 @@ from config import (
 
 
 
-#_table = {k:f"{i:02}" for i, k in enumerate("qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890")}
 I2C = {i:k for i,k in enumerate("QWERTYUIOPASDFGHJKLZXCVBNM1234567890")}
 C2I = {k:i for i,k in I2C.items()}
 
@@ -57,39 +54,17 @@ def rgb_from_rgba(img) -> Image:
     bg = Image.new("RGB", img.size, bg_color)
     return Image.alpha_composite(bg, img).convert('RGB')
 
-def reshape(img: Image, _indent=1) -> Image:
-    # If image is too small, enlarge it
-    if img.width < 130:
-        mx = 150 / img.width
-        if DEBUG:
-            print(f"{'  '*_indent}- Resizing: `{mx:.3f}`x")
-        img = T.Resize(
-            (
-                int(mx * img.width),
-                int(mx * img.height),
-            )
-        )(img)
-    # If image is too large, make it smaller
-    if img.width > MAX_W:
-        mx = MAX_W / img.width
-        if DEBUG:
-            print(f"{'  '*_indent}- Resizing: `{mx:.3f}`x")
-        img = T.Resize(
-            (
-                int(mx * img.width),
-                int(mx * img.height),
-            )
-        )(img)
+def reshape(img: Image) -> Image:
+    w = img.width
+    h = img.height
 
-    # Grayscale
-    if len(img.size)==2 or img.size[2]==1:
-        img = rgb_from_grayscale(img)
-    # RGBA
-    elif img.size[2]==4:
-        img = rbg_from_rgba(img)
+    mx = min(
+        MAX_W / w,
+        MAX_H / h,
+    )
 
-    hw = (MAX_W-img.width )//2
-    hh = (MAX_H-img.height)//2
+    hw = int( ( MAX_W - (w * mx) ) // 2 )
+    hh = int( ( MAX_H - (h * mx) ) // 2 )
 
     unify = T.Compose([
         T.Pad(
@@ -103,62 +78,13 @@ def reshape(img: Image, _indent=1) -> Image:
 
     return unify(img);
 
-def do_train(model, data_loader, optimizer) -> float:
-    model.train()
-    fin_loss = 0
-    tk0 = tqdm(data_loader, total=len(data_loader))
-    for data in tk0:
-        for key, value in data.items():
-            data[key] = value.to(DEVICE)
-        optimizer.zero_grad()
-        _, loss = model(**data)
-        loss.backward()
-        optimizer.step()
-        fin_loss += loss.item()
-    return fin_loss / len(data_loader)
+def fit_image(img: Image) -> Image:
+    # Grayscale
+    if len(img.size)==2 or img.size[2]==1:
+        img = rgb_from_grayscale(img)
+    # RGBA
+    elif img.size[2]==4:
+        img = rbg_from_rgba(img)
 
-def do_eval(model, data_loader) -> tuple[ list, float ]:
-    model.eval()
-    fin_loss = 0
-    fin_preds = []
-    tk0 = tqdm(data_loader, total=len(data_loader))
-    for data in tk0:
-        for key, value in data.items():
-            data[key] = value.to(DEVICE)
-        batch_preds, loss = model(**data)
-        fin_loss += loss.item()
-        fin_preds.append(batch_preds)
-    return fin_preds, fin_loss / len(data_loader)
-
-def dedup(x: str) -> str:
-    if len(x) < 2:
-        return x
-    fin = ""
-    for j in x:
-        if fin == "":
-            fin = j
-        else:
-            if j == fin[-1]:
-                continue
-            else:
-                fin = fin + j
-    return fin
-
-def decode_preds(preds, encoder):
-    preds = preds.permute(1, 0, 2)
-    preds = torch.softmax(preds, 2)
-    preds = torch.argmax(preds, 2)
-    preds = preds.detach().cpu().numpy()
-    cap_preds = []
-    for j in range(preds.shape[0]):
-        temp = []
-        for k in preds[j, :]:
-            k = k - 1
-            if k == -1:
-                temp.append("§")
-            else:
-                p = encoder.inverse_transform([k])[0]
-                temp.append(p)
-        tp = "".join(temp).replace("§", "")
-        cap_preds.append(dedup(tp))
-    return cap_preds
+    img = reshape(img)
+    return img

@@ -5,8 +5,8 @@ description = "CAPTCHA solver AI"
 requires-python = ">=3.13"
 dependencies = [
     # feature: Data Cleaning
-    "matplotlib",
-    "notebook",
+    #"matplotlib",
+    #"notebook",
 
     # feature: frontend
     "questionary",

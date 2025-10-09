@@ -11,10 +11,11 @@ DEVICE = device("cuda" if have_gpu() else "cpu")
 
 DATA_DIR = "./data/ready/"
 TRAIN_PERC = 0.90
+TEST_SIZE = 100
 
-BATCH_SIZE = 16
-NUM_WORKERS = 1
-EPOCHS = 20
+BATCH_SIZE = 64
+NUM_WORKERS = 4
+EPOCHS = 50
 
 # evalu.py
 TRAINED_DIR = "./trained/"

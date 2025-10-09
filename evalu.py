@@ -5,24 +5,22 @@ import questionary
 from PIL import Image
 from pathlib import Path
 
-from model import CaptchaModel
 from helper import (
     TRANSFORM,
-    _rtable,
-    reshape,
+    fit_image,
+    I2C,
 )
 from config import (
     DEVICE,
-
     DEBUG,
     RAW_TENSOR,
     TRAINED_DIR,
     DATA_DIR,
-
     MAX_W, MAX_H,
 )
 from train import (
     USE_MODEL,
+    USE_DATASET,
 )
 
 
@@ -41,7 +39,8 @@ def main():
     ).ask();
 
     model = USE_MODEL(
-        num_chars =5,
+        num_classes   =36,
+        captcha_length=5,
     )
 
     try:
@@ -64,20 +63,10 @@ def main():
             validate=check_is_file,
         ).ask();
 
-        # Open, Pad with dominant edge pixel, Resize to (256x256), ToTensor, Normalize
+        # Open, Pad with dominant edge pixel, Resize to (256x128), ToTensor, Normalize
         img = Image.open(evaluation_file_path).convert("RGB")
-        img = reshape(img)
-        img = img.resize(
-            (MAX_W, MAX_H),
-            resample=Image.BILINEAR,
-        )
-        img = np.array(img)
-        aug = self.aug(image=img)
-        img = aug["image"]
-        img = np.transpose(
-            img, (2, 0, 1)
-        ).astype(np.float32)
-        img = torch.tensor(img, dtype=torch.float)
+        img = fit_image(img)
+        img = TRANSFORM(img).unsqueeze(0) # `RGB` to `RGBA`
         img = img.to(device)
 
         with torch.no_grad():
@@ -95,7 +84,7 @@ def main():
             "  - Pred: `{}`".format(
                 ''.join(
                     map(
-                        lambda idx: _rtable[idx],
+                        lambda idx: I2C[idx],
                         list(map(
                             lambda out: np.argmax(out),
                             pred[0]

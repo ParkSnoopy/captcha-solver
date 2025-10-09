@@ -1,9 +1,4 @@
 import numpy as np
-from sklearn import (
-    preprocessing,
-    model_selection,
-    metrics,
-)
 
 import torch
 import torch.nn as nn
@@ -18,23 +13,23 @@ from itertools import batched
 import random
 
 from model import (
-    CaptchaDataset,
+    CaptchaDatasetV21,
     CaptchaModelV21,
 )
 from helper import (
-#    TRANSFORM,
-    do_train,
-    do_eval,
-    decode_preds,
-    dedup,
+    fit_image,
+    TRANSFORM,
+    I2C
 )
 from config import (
     SEED,
     USE_GPU,
+    DEVICE,
     DATA_DIR,
     TRAIN_PERC,
     BATCH_SIZE,
     NUM_WORKERS,
+    TEST_SIZE,
     EPOCHS,
 )
 
@@ -45,7 +40,7 @@ torch.manual_seed(SEED)
 MODEL_PRETTY_NAME = "CaptchaModel_v2.1"
 
 USE_MODEL   = CaptchaModelV21
-USE_DATASET = CaptchaDataset
+USE_DATASET = CaptchaDatasetV21
 TIMEZONE    = ZoneInfo("Asia/Shanghai")
 
 
@@ -106,27 +101,32 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(
         model.parameters(),
-        lr=0.0004,
+        lr=0.0005,
+        weight_decay=0.0001,
     )
 
     # Train
     print("  - Train Start")
     for epoch in range(EPOCHS):
-        print(f"\n    - Training `{epoch+1}` th epoch\n")
+        print(f"\n    - Training `{epoch+1}` th epoch")
 
         train_loss_value = 0.0
+        _curr = 0
+        _total = len(train_dataset)
 
         model.train()
         for images, labels in train_loader:
 
-        valid_preds_raw, valid_loss = do_eval(
-            model=model,
-            data_loader=valid_loader,
-        )
+            _step  = len(labels)
+            _curr += _step
+            print(f"      - Train `{100*_curr/_total:.02f}`% ({_curr}/{_total})", end="\r")
 
-        print(f"      - Loss <Validation> : `{valid_loss:.06f}`")
+            images = images.to(device).requires_grad_(False)
+            labels = labels.to(device).requires_grad_(False)
 
-            # Calc Loss
+            optimizer.zero_grad()
+            outputs = model(images)
+
             train_loss = criterion(
                 outputs.view(-1, outputs.size(-1)),
                 labels.view(-1),
@@ -138,36 +138,70 @@ def main():
 
         average_loss = train_loss_value / len(train_loader)
 
-        print(f"      - Loss[Train]: `{average_loss:.06f}`")
+        print(f"\n      - Loss[Train]: `{average_loss:.06f}`")
 
         # Validation
         valid_loss_value = 0.0
+        _curr = 0
+        _total = len(valid_dataset)
 
         model.eval()
         with torch.no_grad():
             for images, labels in valid_loader:
 
-                images = images.to(device).requires_grad_(False)
-                labels = labels.to(device).requires_grad_(False)
+                _step  = len(labels)
+                _curr += _step
+                print(f"      - Eval  `{100*_curr/_total:.02f}`% ({_curr}/{_total})", end="\r")
 
-                # Optim
+                images = images.to(device)
+                labels = labels.to(device)
+
                 optimizer.zero_grad()
                 outputs = model(images)
 
-                # Calc Loss
                 valid_loss = criterion(
                     outputs.view(-1, outputs.size(-1)),
                     labels.view(-1),
                 )
-                valid_loss.requires_grad = True
-                valid_loss.backward()
-                optimizer.step()
+                #valid_loss.backward()
+                #optimizer.step()
 
                 valid_loss_value += valid_loss.item()
 
         valid_loss_value /= len(valid_loader)
 
-        print(f"      - Loss[Eval ]: `{valid_loss_value:.06f}`")
+        print(f"\n      - Loss[Valid]: `{valid_loss_value:.06f}`")
+
+        # Test with random samples
+        test_images = random.sample(image_paths, k=TEST_SIZE)
+
+        _total = 0;
+        _pass  = 0;
+
+        for image_path in test_images:
+            _total += 1;
+
+            label = image_path.stem.split('.')[0]
+            img = Image.open(image_path)
+            img = fit_image(img)
+            img = TRANSFORM(img).unsqueeze(0)
+            img = img.to(device)
+            pred = model(img).detach().cpu().numpy()
+            pred = ''.join(map(
+                lambda idx: I2C[idx],
+                list(map(
+                    lambda out: np.argmax(out),
+                    pred[0]
+                ))
+            ))
+
+            if pred.upper() == label.upper():
+                _pass += 1;
+                print(f"      - Test[{_total:5^}]: PASS ( {pred} ~= {label} ) [ Current Accuracy `{100*_pass/_total:.02f}` % ]", end="\n")
+            else:
+                print(f"      - Test[{_total:5^}]: FAIL ( {pred} != {label} )", end="\r")
+
+        print(f"\n      -  Accuracy  : `{100*_pass/_total:.02f}` % (Total `{_total}`, Pass `{_pass}`, Fail `{_total-_pass}`)")
 
         # Save model
         filename = f"./trained/{datetime.now(tz=TIMEZONE).strftime("%Y%m%d_%H%M%S")}_epoch{epoch+1:02}_on_{MODEL_PRETTY_NAME}.pth"
