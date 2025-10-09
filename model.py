@@ -17,11 +17,11 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class CaptchaDatasetV3:
-    def __init__(self, img_paths: list[Path], targets, transform=None):
-        # transform = (height, width)
+    def __init__(self, img_paths: list[Path], labels, img_size=None):
+        # img_size = (width, height)
         self.img_paths = img_paths
-        self.targets = targets
-        self.transform = transform
+        self.labels = labels
+        self.img_size = img_size
 
         mean = (0.485, 0.456, 0.406)
         std  = (0.229, 0.224, 0.225)
@@ -38,11 +38,11 @@ class CaptchaDatasetV3:
 
     def __getitem__(self, item) -> dict:
         img = Image.open(self.img_paths[item]).convert("RGB")
-        tgt = self.targets[item]
+        label = self.labels[item]
 
-        if self.transform is not None:
+        if self.img_size is not None:
             img = img.resize(
-                (self.transform[1], self.transform[0]),
+                img_size,
                 resample=Image.BILINEAR,
             )
 
@@ -54,8 +54,8 @@ class CaptchaDatasetV3:
         ).astype(np.float32)
 
         return {
-            "imgs": torch.tensor(img, dtype=torch.float),
-            "tgts": torch.tensor(tgt, dtype=torch.long ),
+            "imgs": torch.tensor(img  , dtype=torch.float),
+            "tgts": torch.tensor(label, dtype=torch.long ),
         }
 
 class CaptchaModelV3(nn.Module):

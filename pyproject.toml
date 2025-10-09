@@ -10,12 +10,14 @@ dependencies = [
 
     # feature: frontend
     "questionary",
+    "tqdm",
 
     # feature: computate
     "numpy",
     "pillow",
 
     # feature: deeplearning
+    "scikit-learn",
     "albumentations",
     "torch",
     "torchvision",

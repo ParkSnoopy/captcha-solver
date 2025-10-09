@@ -4,6 +4,8 @@ import numpy as np
 from PIL import Image
 from collections import Counter
 
+from tqdm import tqdm
+
 from config import (
     MAX_W, MAX_H, DEBUG,
 )
@@ -123,3 +125,36 @@ def do_eval(model, data_loader) -> tuple[ list, float ]:
         fin_loss += loss.item()
         fin_preds.append(batch_preds)
     return fin_preds, fin_loss / len(data_loader)
+
+def dedup(x: str) -> str:
+    if len(x) < 2:
+        return x
+    fin = ""
+    for j in x:
+        if fin == "":
+            fin = j
+        else:
+            if j == fin[-1]:
+                continue
+            else:
+                fin = fin + j
+    return fin
+
+def decode_preds(preds, encoder):
+    preds = preds.permute(1, 0, 2)
+    preds = torch.softmax(preds, 2)
+    preds = torch.argmax(preds, 2)
+    preds = preds.detach().cpu().numpy()
+    cap_preds = []
+    for j in range(preds.shape[0]):
+        temp = []
+        for k in preds[j, :]:
+            k = k - 1
+            if k == -1:
+                temp.append("§")
+            else:
+                p = encoder.inverse_transform([k])[0]
+                temp.append(p)
+        tp = "".join(temp).replace("§", "")
+        cap_preds.append(dedup(tp))
+    return cap_preds
