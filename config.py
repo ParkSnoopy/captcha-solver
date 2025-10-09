@@ -12,8 +12,8 @@ TRAINED_DIR = "./trained/"
 RAW_TENSOR = False
 
 # test.py
-#TEST_DIR = "./data/test/"
-TEST_DIR = "./data/ready/"
+TEST_DIR = "./data/test/"
+#TEST_DIR = "./data/ready/"
 
 # helper.py
 # max among `{ (40, 150, 3), (50, 200, 3), (50, 180), (50, 200, 4), (256, 256, 3) }`
