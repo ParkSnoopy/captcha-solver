@@ -1,4 +1,10 @@
 import numpy as np
+from sklearn import (
+    preprocessing,
+    model_selection,
+    metrics,
+)
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -16,13 +22,19 @@ from model import (
     CaptchaModelV21,
 )
 from helper import (
-    TRANSFORM,
+#    TRANSFORM,
+    do_train,
+    do_eval,
+    decode_preds,
+    dedup,
 )
 from config import (
     SEED,
     USE_GPU,
     DATA_DIR,
     TRAIN_PERC,
+    BATCH_SIZE,
+    NUM_WORKERS,
     EPOCHS,
 )
 
@@ -42,8 +54,7 @@ def main():
 
     # Device setup
     print("  - Detect device: ", end="")
-    if USE_GPU and not torch.cuda.is_available(): raise Exception("No GPU")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = DEVICE
     print(device)
 
     # Get all images
@@ -98,10 +109,8 @@ def main():
         lr=0.0004,
     )
 
-
-
     # Train
-    print("  - Start Train")
+    print("  - Train Start")
     for epoch in range(EPOCHS):
         print(f"\n    - Training `{epoch+1}` th epoch\n")
 
@@ -110,12 +119,12 @@ def main():
         model.train()
         for images, labels in train_loader:
 
-            images = images.to(device).requires_grad_(False)
-            labels = labels.to(device).requires_grad_(False)
+        valid_preds_raw, valid_loss = do_eval(
+            model=model,
+            data_loader=valid_loader,
+        )
 
-            # Optim
-            optimizer.zero_grad()
-            outputs = model(images)
+        print(f"      - Loss <Validation> : `{valid_loss:.06f}`")
 
             # Calc Loss
             train_loss = criterion(
@@ -168,13 +177,15 @@ def main():
             'model': model.state_dict(),
             'optimizer': optimizer.state_dict(),
         }
+
         torch.save(
             state,
             filename,
         )
+
         print(f"\n      - Model saved as `{filename}`")
 
 
 
-if __name__ in {"__main__", "__mp_main__"}:
+if __name__ == "__main__": #in {"__main__", "__mp_main__"}:
     main();
