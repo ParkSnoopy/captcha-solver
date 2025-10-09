@@ -1,6 +1,6 @@
 [project]
 name = "captcha-solver"
-version = "0.2.1"
+version = "0.3.0"
 description = "CAPTCHA solver AI"
 requires-python = ">=3.13"
 dependencies = [
