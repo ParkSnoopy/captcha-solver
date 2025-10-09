@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,6 +11,9 @@ from PIL import Image, ImageFile
 
 from helper import (
     _table,
+)
+from config import (
+    MAX_W, MAX_H,
 )
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -42,28 +46,27 @@ class CaptchaDatasetV3:
 
         if self.img_size is not None:
             img = img.resize(
-                img_size,
+                self.img_size,
                 resample=Image.BILINEAR,
             )
 
         img = np.array(img)
         aug = self.aug(image=img)
-        img = aug["img"]
+        img = aug["image"]
         img = np.transpose(
             img, (2, 0, 1)
         ).astype(np.float32)
 
         return {
-            "imgs": torch.tensor(img  , dtype=torch.float),
-            "tgts": torch.tensor(label, dtype=torch.long ),
+            "images" : torch.tensor(img  , dtype=torch.float),
+            "targets": torch.tensor(label, dtype=torch.long ),
         }
 
 class CaptchaModelV3(nn.Module):
     def __init__(self, num_chars):
-        super(CaptchaModel, self).__init__()
+        super(CaptchaModelV3, self).__init__()
         self.conv_1 = nn.Conv2d(
-            3,
-            128,
+            3, 128,
             kernel_size=(3, 6),
             padding=(1, 1),
         )
@@ -71,8 +74,7 @@ class CaptchaModelV3(nn.Module):
             kernel_size=(2, 2),
         )
         self.conv_2 = nn.Conv2d(
-            128,
-            64,
+            128, 64,
             kernel_size=(3, 6),
             padding=(1, 1),
         )
@@ -80,13 +82,11 @@ class CaptchaModelV3(nn.Module):
             kernel_size=(2, 2),
         )
         self.linear_1 = nn.Linear(
-            1152,
-            64,
+            2048, 64,
         )
         self.drop_1 = nn.Dropout(0.2)
         self.lstm = nn.GRU(
-            64,
-            32,
+            64, 32,
             bidirectional=True,
             num_layers=2,
             dropout=0.25,
@@ -97,37 +97,37 @@ class CaptchaModelV3(nn.Module):
             num_chars+1,
         )
 
-    def forward(self, imgs, tgts=None):
-        bs, _, _, _ = imgs.size()
+    def forward(self, images, targets=None):
+        bs, _, _, _ = images.size()
 
         x = F      .relu(
-               self.conv_1(imgs)
+            self   .conv_1(images)
         )
         x = self   .pool_1(x)
         x = F      .relu(
-               self.conv_2(x)
+            self   .conv_2(x)
         )
         x = self   .pool_2(x)
         x = x      .permute(0, 3, 1, 2)
         x = x      .view(   bs, x.size(1), -1 )
         x = F      .relu(
-               self.linear_1(x)
+            self   .linear_1(x)
         )
         x = self   .drop_1(x)
         x, _ = self.lstm(x)
         x = self   .output(x)
         x = x      .permute(1, 0, 2)
 
-        if tgts is not None:
+        if targets is not None:
             log_probs = F.log_softmax(x, 2)
-            inp_len = torch.full(
+            input_len = torch.full(
                 size=(bs,), fill_value=log_probs.size(0), dtype=torch.int32
             )
-            tgt_len = torch.full(
+            target_len = torch.full(
                 size=(bs,), fill_value=targets.size(1), dtype=torch.int32
             )
             loss = nn.CTCLoss(blank=0)(
-                log_probs, tgts, inp_len, tgt_len
+                log_probs, targets, input_len, target_len
             )
             return x, loss
 

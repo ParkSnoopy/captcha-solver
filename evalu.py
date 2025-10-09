@@ -12,18 +12,24 @@ from helper import (
     reshape,
 )
 from config import (
+    DEVICE,
+
     DEBUG,
     RAW_TENSOR,
-    USE_GPU,
     TRAINED_DIR,
     DATA_DIR,
+
+    MAX_W, MAX_H,
+)
+from train import (
+    USE_MODEL,
 )
 
 
 
 def main():
-    if USE_GPU and not torch.cuda.is_available(): raise Exception("No GPU")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    device = DEVICE
 
     def check_is_file(path:str) -> bool:
         return Path(path).is_file();
@@ -34,23 +40,19 @@ def main():
         validate=check_is_file,
     ).ask();
 
-    model = CaptchaModel(
-        num_classes   =62,
-        captcha_length=5,
-        input_channels=3,
-        image_width   =256,
-        image_height  =256,
+    model = USE_MODEL(
+        num_chars =5,
     )
 
     try:
-        # Legacy save format
-        model.load_state_dict(
-            torch.load(model_file_path)
-        )
-    except:
         # Latest save format
         model.load_state_dict(
             torch.load(model_file_path)['model']
+        )
+    except:
+        # Legacy save format
+        model.load_state_dict(
+            torch.load(model_file_path)
         )
 
     model = model.to(device)
@@ -63,9 +65,19 @@ def main():
         ).ask();
 
         # Open, Pad with dominant edge pixel, Resize to (256x256), ToTensor, Normalize
-        img = Image.open(evaluation_file_path)
+        img = Image.open(evaluation_file_path).convert("RGB")
         img = reshape(img)
-        img = TRANSFORM(img).unsqueeze(0)
+        img = img.resize(
+            (MAX_W, MAX_H),
+            resample=Image.BILINEAR,
+        )
+        img = np.array(img)
+        aug = self.aug(image=img)
+        img = aug["image"]
+        img = np.transpose(
+            img, (2, 0, 1)
+        ).astype(np.float32)
+        img = torch.tensor(img, dtype=torch.float)
         img = img.to(device)
 
         with torch.no_grad():

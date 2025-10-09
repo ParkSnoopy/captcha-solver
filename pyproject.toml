@@ -22,6 +22,9 @@ dependencies = [
     "torch",
     "torchvision",
 
+    # feature: save model with local timezone
+    "tzdata",
+
     # ROCm PyTorch Dependency
     "pytorch-triton-rocm; sys_platform=='linux'",
 ]

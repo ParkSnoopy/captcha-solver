@@ -1,13 +1,18 @@
 DEBUG = True
 
 # train.py
-USE_GPU = True
+USE_GPU = False
+
+from torch.cuda import is_available as have_gpu
+from torch      import device
+if USE_GPU and not have_gpu(): raise Exception("No GPU")
+DEVICE = device("cuda" if have_gpu() else "cpu")
 
 DATA_DIR = "./data/ready/"
 TRAIN_PERC = 0.90
 
 BATCH_SIZE = 16
-NUM_WORKERS = 8
+NUM_WORKERS = 1
 EPOCHS = 20
 
 MODEL_PRETTY_NAME = "CaptchaModel_v3"

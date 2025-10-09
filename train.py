@@ -33,7 +33,7 @@ from helper import (
     dedup,
 )
 from config import (
-    USE_GPU,
+    DEVICE,
     DATA_DIR,
 
     TRAIN_PERC,
@@ -48,7 +48,7 @@ from config import (
 
 USE_MODEL   = CaptchaModelV3
 USE_DATASET = CaptchaDatasetV3
-TIMEZONE    = ZoneInfo("Asia/Beijing")
+TIMEZONE    = ZoneInfo("Asia/Shanghai")
 
 
 
@@ -56,8 +56,7 @@ def main():
 
     # Device setup
     print("  - Detect device: ", end="")
-    if USE_GPU and not torch.cuda.is_available(): raise Exception("No GPU")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = DEVICE
     print(device)
 
     # Get all images
@@ -148,7 +147,6 @@ def main():
         optimizer,
         factor=0.8,
         patience=5,
-        verbose=True,
     )
 
     # Train
@@ -164,20 +162,20 @@ def main():
 
         print(f"      - Loss   <Training> : `{train_loss:.06f}`")
 
-        valid_preds, valid_loss = do_eval(
+        valid_preds_raw, valid_loss = do_eval(
             model=model,
             data_loader=valid_loader,
         )
 
         print(f"      - Loss <Validation> : `{valid_loss:.06f}`")
 
-        valid_preds_char = list()
-        for valid_pred in valid_preds:
+        valid_preds = list()
+        for valid_pred_raw in valid_preds_raw:
             current_pred = decode_preds(
-                valid_pred,
+                valid_pred_raw,
                 label_encoder,
             )
-            valid_preds_char.extend(current_pred)
+            valid_preds.append(current_pred)
 
         combined = list(zip(
             valid_targets_raw,
@@ -197,19 +195,22 @@ def main():
         scheduler.step(valid_loss)
 
         # Save model
-        filename = f"./trained/{datetime.now(tz=TIMEZONE).strftime("%Y%m%d_%H:%M:%S")}_epoch{epoch+1:02}_on_{MODEL_PRETTY_NAME}.pth"
+        filename = f"./trained/{datetime.now(tz=TIMEZONE).strftime("%Y%m%d_%H%M%S")}_epoch{epoch+1:02}_on_{MODEL_PRETTY_NAME}.pth"
+
         state = {
             'epoch': epoch + 1,
             'model': model.state_dict(),
             'optimizer': optimizer.state_dict(),
         }
+
         torch.save(
             state,
             filename,
         )
+
         print(f"\n      - Model saved as `{filename}`")
 
 
 
-if __name__ in {"__main__", "__mp_main__"}:
+if __name__ == "__main__": #in {"__main__", "__mp_main__"}:
     main();

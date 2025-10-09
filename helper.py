@@ -1,3 +1,4 @@
+import torch
 import torchvision.transforms as T
 import numpy as np
 
@@ -7,7 +8,10 @@ from collections import Counter
 from tqdm import tqdm
 
 from config import (
-    MAX_W, MAX_H, DEBUG,
+    DEBUG,
+    DEVICE,
+
+    MAX_W, MAX_H,
 )
 
 
@@ -105,7 +109,7 @@ def do_train(model, data_loader, optimizer) -> float:
     tk0 = tqdm(data_loader, total=len(data_loader))
     for data in tk0:
         for key, value in data.items():
-            data[key] = value.to(config.DEVICE)
+            data[key] = value.to(DEVICE)
         optimizer.zero_grad()
         _, loss = model(**data)
         loss.backward()
@@ -120,7 +124,7 @@ def do_eval(model, data_loader) -> tuple[ list, float ]:
     tk0 = tqdm(data_loader, total=len(data_loader))
     for data in tk0:
         for key, value in data.items():
-            data[key] = value.to(config.DEVICE)
+            data[key] = value.to(DEVICE)
         batch_preds, loss = model(**data)
         fin_loss += loss.item()
         fin_preds.append(batch_preds)
