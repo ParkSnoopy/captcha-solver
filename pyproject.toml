@@ -1,31 +1,46 @@
 [project]
 name = "captcha-solver"
-version = "0.2.1"
+version = "0.2.2"
 description = "CAPTCHA solver AI"
 requires-python = ">=3.13"
 dependencies = [
-    #"matplotlib",
+    # feature: Data Cleaning
+    "matplotlib",
     "notebook",
+
+    # feature: frontend
+    "questionary",
+    #"tqdm",
+
+    # feature: computate
     "numpy",
     "pillow",
+
+    # feature: deeplearning
+    #"scikit-learn",
+    #"albumentations",
     "torch",
     "torchvision",
-    "pytorch-triton-rocm",
-    "questionary",
+
+    # feature: save model with local timezone
+    "tzdata",
+
+    # ROCm PyTorch Dependency
+    "pytorch-triton-rocm; sys_platform=='linux'",
 ]
 
 [tool.uv]
 index-strategy = "unsafe-best-match"
 
-[tool.uv.sources]
+[tool.uv.sources] # only if system platform is linux
 torch = [
-    { index = "pytorch-rocm" },
+    { index = "pytorch-rocm", marker = "sys_platform == 'linux'" },
 ]
 torchvision = [
-    { index = "pytorch-rocm" },
+    { index = "pytorch-rocm", marker = "sys_platform == 'linux'" },
 ]
 pytorch-triton-rocm = [
-    { index = "pytorch-rocm" },
+    { index = "pytorch-rocm", marker = "sys_platform == 'linux'" },
 ]
 
 [[tool.uv.index]]

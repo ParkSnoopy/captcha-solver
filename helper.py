@@ -11,8 +11,8 @@ from config import (
 
 
 #_table = {k:f"{i:02}" for i, k in enumerate("qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890")}
-_table  = {k:i for i, k in enumerate("qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890")}
-_rtable = {i:k for k,i in _table.items()}
+I2C = {i:k for i,k in enumerate("QWERTYUIOPASDFGHJKLZXCVBNM1234567890")}
+C2I = {k:i for i,k in I2C.items()}
 
 # Transform: fit into pretrained model
 TRANSFORM = T.Compose([
@@ -64,8 +64,8 @@ def reshape(img: Image, _indent=1) -> Image:
             )
         )(img)
     # If image is too large, make it smaller
-    if img.width > 256:
-        mx = 256 / img.width
+    if img.width > MAX_W:
+        mx = MAX_W / img.width
         if DEBUG:
             print(f"{'  '*_indent}- Resizing: `{mx:.3f}`x")
         img = T.Resize(
@@ -91,7 +91,7 @@ def reshape(img: Image, _indent=1) -> Image:
             fill=get_dominant_corner_color(img, _sample=0.1),
         ),
         T.Resize(
-            (256,256)
+            (MAX_H,MAX_W)
         ),
     ])
 

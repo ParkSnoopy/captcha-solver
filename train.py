@@ -7,26 +7,34 @@ from torch.utils.data import DataLoader, random_split
 from pathlib import Path
 from PIL import Image
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from itertools import batched
 import random
 
 from model import (
     CaptchaDataset,
-    CaptchaModel,
-    CaptchaModelV2,
+    CaptchaModelV21,
 )
 from helper import (
     TRANSFORM,
 )
 from config import (
+    SEED,
     USE_GPU,
     DATA_DIR,
     TRAIN_PERC,
-
     EPOCHS,
 )
 
-USE_MODEL = CaptchaModelV2
+random      .seed(SEED)
+np.random   .seed(SEED)
+torch.manual_seed(SEED)
+
+MODEL_PRETTY_NAME = "CaptchaModel_v2.1"
+
+USE_MODEL   = CaptchaModelV21
+USE_DATASET = CaptchaDataset
+TIMEZONE    = ZoneInfo("Asia/Shanghai")
 
 
 
@@ -38,49 +46,56 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
 
-    # Model, Loss, and Optimizer
-    # 26 letters + 26 letters + 10 digits, 256x256 sized, 3 channel (RGB)
-    model = USE_MODEL(
-        num_classes   =62,
-        captcha_length=5,
-        input_channels=3,
-        image_width   =256,
-        image_height  =256,
-    )
-    model = model.to(device)
-
-
-
     # Get all images
-    print("  - Load Dataset")
+    print("  - Data Load")
     data_dir = Path(DATA_DIR)
-    img_paths = list(data_dir.glob("*.png"))  # matches `.png` only (already converted)
+    image_paths = list(data_dir.glob("*.png"))  # matches `.png` only (already converted)
 
     # Shuffle for random split
-    random.shuffle(img_paths)
+    random.shuffle(image_paths)
 
-    # Split: `TRAIN_PERC` train, `1-TRAIN_PERC` eval
-    t_size = int( len(img_paths) * TRAIN_PERC )
-    v_size =      len(img_paths) - t_size
-
-    t_imgs = img_paths[:t_size]
-    v_imgs = img_paths[t_size:]
-
-
+    # Split: `TRAIN_PERC` train, `1-TRAIN_PERC` evaluation
+    train_n = int( len(image_paths) * TRAIN_PERC )
+    train_images = image_paths[:train_n]
+    valid_images = image_paths[train_n:]
 
     # Ready Dataset and DataLoader
-    print("  - Ready Dataset")
-    t_dataset = CaptchaDataset(t_imgs, transform=TRANSFORM)
-    v_dataset = CaptchaDataset(v_imgs, transform=TRANSFORM)
+    print("  - Data to Dataset")
+    train_dataset = USE_DATASET(
+        img_paths=train_images,
+        transform=TRANSFORM,
+    )
+    valid_dataset = USE_DATASET(
+        img_paths=valid_images,
+        transform=TRANSFORM,
+    )
 
-    t_loader = DataLoader(t_dataset, batch_size=64, shuffle=True)
-    v_loader = DataLoader(v_dataset, batch_size=64, shuffle=False)
+    print("  - Dataset to DataLoader")
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS,
+        shuffle=True,
+    )
+    valid_loader = DataLoader(
+        valid_dataset,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS,
+        shuffle=True,
+    )
 
+    # Model, Loss, and Optimizer
+    # 26 letters 10 digits
+    print(f"  - Load Model ( {MODEL_PRETTY_NAME} )")
+    model = USE_MODEL(
+        num_classes   =36,
+        captcha_length=5,
+    )
+    model = model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(
         model.parameters(),
-        lr=0.001,
-        weight_decay=0.0001,
+        lr=0.0004,
     )
 
 
@@ -88,12 +103,12 @@ def main():
     # Train
     print("  - Start Train")
     for epoch in range(EPOCHS):
-        print(f"    - Training `{epoch+1}` th epoch")
+        print(f"\n    - Training `{epoch+1}` th epoch\n")
+
+        train_loss_value = 0.0
 
         model.train()
-        running_loss = 0.0
-
-        for images, labels in t_loader:
+        for images, labels in train_loader:
 
             images = images.to(device).requires_grad_(False)
             labels = labels.to(device).requires_grad_(False)
@@ -103,25 +118,25 @@ def main():
             outputs = model(images)
 
             # Calc Loss
-            loss = criterion(
+            train_loss = criterion(
                 outputs.view(-1, outputs.size(-1)),
                 labels.view(-1),
             )
-            loss.backward()
+            train_loss.backward()
             optimizer.step()
 
-            running_loss += loss.item()
+            train_loss_value += train_loss.item()
 
-        avg_loss = running_loss / len(t_loader)
+        average_loss = train_loss_value / len(train_loader)
 
-        print(f"      - Training   Loss: `{avg_loss:.09f}`")
+        print(f"      - Loss[Train]: `{average_loss:.06f}`")
 
         # Validation
-        model.eval()
-        val_loss = 0.0
+        valid_loss_value = 0.0
 
+        model.eval()
         with torch.no_grad():
-            for images, labels in v_loader:
+            for images, labels in valid_loader:
 
                 images = images.to(device).requires_grad_(False)
                 labels = labels.to(device).requires_grad_(False)
@@ -131,22 +146,23 @@ def main():
                 outputs = model(images)
 
                 # Calc Loss
-                loss = criterion(
+                valid_loss = criterion(
                     outputs.view(-1, outputs.size(-1)),
                     labels.view(-1),
                 )
-                loss.requires_grad = True
-                loss.backward()
+                valid_loss.requires_grad = True
+                valid_loss.backward()
                 optimizer.step()
 
-                val_loss += loss.item()
+                valid_loss_value += valid_loss.item()
 
-        val_loss /= len(v_loader)
+        valid_loss_value /= len(valid_loader)
 
-        print(f"      - Validation Loss: `{val_loss:.09f}`")
+        print(f"      - Loss[Eval ]: `{valid_loss_value:.06f}`")
 
         # Save model
-        filename = f"./trained/{datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}_epoch{epoch+1:02}_on_self.pth"
+        filename = f"./trained/{datetime.now(tz=TIMEZONE).strftime("%Y%m%d_%H%M%S")}_epoch{epoch+1:02}_on_{MODEL_PRETTY_NAME}.pth"
+
         state = {
             'epoch': epoch + 1,
             'model': model.state_dict(),
@@ -156,7 +172,7 @@ def main():
             state,
             filename,
         )
-        print(f"      - Model saved as `{filename}`")
+        print(f"\n      - Model saved as `{filename}`")
 
 
 
