@@ -1,0 +1,10 @@
+questionary
+tqdm
+
+tzdata
+
+numpy
+pillow
+
+torch
+torchvision
