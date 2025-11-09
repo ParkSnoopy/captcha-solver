@@ -5,8 +5,8 @@ import torch.nn as nn
 from torch.utils.data import Dataset
 from PIL import Image
 
-from helper import C2I
-from config import MAX_W, MAX_H
+from .helper import C2I
+from .config import MAX_W, MAX_H
 
 
 class CaptchaDatasetV22(Dataset):

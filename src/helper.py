@@ -4,7 +4,7 @@ from PIL import Image
 from collections import Counter
 from typing import Tuple
 
-from config import MAX_W, MAX_H, CHARSET
+from .config import MAX_W, MAX_H, CHARSET
 
 # Index ↔ Char maps (26 letters + 10 digits)
 I2C = {i: k for i, k in enumerate(CHARSET)}
