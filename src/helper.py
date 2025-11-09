@@ -1,86 +1,80 @@
-import torchvision.transforms as T
 import numpy as np
-
+import torchvision.transforms as T
 from PIL import Image
 from collections import Counter
+from typing import Tuple
 
-from config import (
-    MAX_W, MAX_H,
+from config import MAX_W, MAX_H
+
+# Index ↔ Char maps (26 letters + 10 digits)
+I2C = {i: k for i, k in enumerate("QWERTYUIOPASDFGHJKLZXCVBNM1234567890")}
+C2I = {k: i for i, k in I2C.items()}
+
+# ImageNet normalization (keep in sync with train/eval)
+TRANSFORM = T.Compose(
+    [
+        T.ToTensor(),
+        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ]
 )
 
 
-
-I2C = {i:k for i,k in enumerate("QWERTYUIOPASDFGHJKLZXCVBNM1234567890")}
-C2I = {k:i for i,k in I2C.items()}
-
-# Transform: fit into pretrained model
-TRANSFORM = T.Compose([
-    T.ToTensor(),
-    T.Normalize(
-        mean=[0.485,0.456,0.406],
-        std =[0.229,0.224,0.225],
-    ),
-])
-
-def get_dominant_corner_color(img: Image, _sample=0.05):
-    img = np.array(img)
-    w, h = img.shape[:2]
-    channel = 1 if img.ndim == 2 else img.shape[2]
+def _dominant_corner_color(
+    img: Image.Image, _sample: float = 0.05
+) -> Tuple[int, int, int]:
+    """Why: avoid padding artifacts by matching background."""
+    arr = np.array(img)
+    h, w = arr.shape[:2]
+    c = 1 if arr.ndim == 2 else arr.shape[2]
 
     pw = max(1, int(w * _sample))
     ph = max(1, int(h * _sample))
 
-    corners = list()
-    corners.append(img[0:ph, 0:pw]) # TL
-    corners.append(img[0:ph, -pw:]) # TB
-    corners.append(img[-ph:, 0:pw]) # BL
-    corners.append(img[-ph:, -pw:]) # BR
+    corners = [
+        arr[0:ph, 0:pw],  # TL
+        arr[0:ph, -pw:],  # TR
+        arr[-ph:, 0:pw],  # BL
+        arr[-ph:, -pw:],  # BR
+    ]
+    flat = np.concatenate([corner.reshape(-1, c) for corner in corners], axis=0)
+    pixels = [tuple(int(x) for x in rgb) for rgb in flat]
+    return Counter(pixels).most_common(1)[0][0] if c == 3 else (0, 0, 0)
 
-    corners = np.concatenate([corner.reshape(-1, channel) for corner in corners], axis=0)
 
-    pixels = [tuple(rgb) for rgb in corners]
-    most_common = Counter(pixels).most_common(1)[0][0]
-
-    return most_common
-
-def rgb_from_grayscale(img) -> Image:
+def _rgb_from_grayscale(img: Image.Image) -> Image.Image:
     return img.convert("RGB")
-def rgb_from_rgba(img) -> Image:
-    bg_color = get_dominant_corner_color(img, _sample=0.1)
-    bg = Image.new("RGB", img.size, bg_color)
-    return Image.alpha_composite(bg, img).convert('RGB')
 
-def reshape(img: Image) -> Image:
-    w = img.width
-    h = img.height
 
-    mx = min(
-        MAX_W / w,
-        MAX_H / h,
+def _rgb_from_rgba(img: Image.Image) -> Image.Image:
+    bg_rgb = _dominant_corner_color(img.convert("RGB"), _sample=0.1)
+    # PIL alpha_composite requires RGBA on both inputs
+    bg = Image.new("RGBA", img.size, (*bg_rgb, 255))
+    return Image.alpha_composite(bg, img.convert("RGBA")).convert("RGB")
+
+
+def reshape(img: Image.Image) -> Image.Image:
+    """Why: center-pad to target canvas, then resize to (MAX_H, MAX_W)."""
+    w, h = img.width, img.height
+    scale = min(MAX_W / w, MAX_H / h)
+    pad_w = int((MAX_W - (w * scale)) // 2)
+    pad_h = int((MAX_H - (h * scale)) // 2)
+    pad_color = _dominant_corner_color(img, _sample=0.1)
+
+    unify = T.Compose(
+        [
+            T.Pad((pad_w, pad_h, pad_w, pad_h), fill=pad_color),
+            T.Resize((MAX_H, MAX_W)),
+        ]
     )
-
-    hw = int( ( MAX_W - (w * mx) ) // 2 )
-    hh = int( ( MAX_H - (h * mx) ) // 2 )
-
-    unify = T.Compose([
-        T.Pad(
-            (hw, hh, hw, hh),
-            fill=get_dominant_corner_color(img, _sample=0.1),
-        ),
-        T.Resize(
-            (MAX_H,MAX_W)
-        ),
-    ])
-
     return unify(img)
 
-def fit_image(img: Image) -> Image:
-    # Grayscale
-    if len(img.size)==2 or img.size[2]==1:
-        img = rgb_from_grayscale(img)
-    # RGBA
-    elif img.size[2]==4:
-        img = rbg_from_rgba(img)
 
-    img = reshape(img)
-    return img
+def fit_image(img: Image.Image) -> Image.Image:
+    """Why: unify all inputs to RGB and fixed canvas before tensor/normalize."""
+    if img.mode == "RGBA":
+        img = _rgb_from_rgba(img)
+    elif img.mode in {"L", "LA"}:
+        img = _rgb_from_grayscale(img)
+    else:
+        img = img.convert("RGB")
+    return reshape(img)

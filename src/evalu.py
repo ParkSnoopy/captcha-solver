@@ -1,103 +1,49 @@
-import numpy as np
-import torch
-
-import questionary
-from PIL import Image
 from pathlib import Path
 
-from helper import (
-    TRANSFORM,
-    fit_image,
-    I2C,
-)
-from config import (
-    DEVICE,
-    RAW_TENSOR,
-    TRAINED_DIR,
-    DATA_DIR,
-)
-from train import (
-    USE_MODEL,
-)
+import numpy as np
+import questionary
+import torch
+from PIL import Image
 
+from config import DEVICE, RAW_TENSOR, TRAINED_DIR, DATA_DIR
+from helper import TRANSFORM, fit_image, I2C
+from train import USE_MODEL
+
+
+def _is_file(path: str) -> bool:
+    return Path(path).is_file()
 
 
 def main():
-
-    device = DEVICE
-
-    def check_is_file(path:str) -> bool:
-        return Path(path).is_file()
-
     model_file_path = questionary.path(
-        "Select model to use",
-        default=TRAINED_DIR,
-        validate=check_is_file,
+        "Select model to use", default=str(TRAINED_DIR), validate=_is_file
     ).ask()
 
-    model = USE_MODEL(
-        num_classes   =36,
-        captcha_length=5,
-    )
-
-    try:
-        # Latest save format
-        model.load_state_dict(
-            torch.load(model_file_path)['model']
-        )
-    except:
-        # Legacy save format
-        model.load_state_dict(
-            torch.load(model_file_path)
-        )
-
-    model = model.to(device)
+    checkpoint = torch.load(model_file_path, map_location=DEVICE)
+    model = USE_MODEL(num_classes=36, captcha_length=5)
+    model.load_state_dict(checkpoint["model"], strict=False)
+    model.to(DEVICE).eval()
 
     while True:
         evaluation_file_path = questionary.path(
-            "Select image to evaluate",
-            default=DATA_DIR,
-            validate=check_is_file,
+            "Select image to evaluate", default=str(DATA_DIR), validate=_is_file
         ).ask()
 
-        # Open, Pad with dominant edge pixel, Resize to (256x128), ToTensor, Normalize
-        img = Image.open(evaluation_file_path).convert("RGB")
+        img = Image.open(evaluation_file_path)
         img = fit_image(img)
-        img = TRANSFORM(img).unsqueeze(0) # `RGB` to `RGBA`
-        img = img.to(device)
+        x = TRANSFORM(img).unsqueeze(0).to(DEVICE)
 
         with torch.no_grad():
-            pred = model(img)
-
+            pred = model(x)
             if RAW_TENSOR:
-                print()
-                print("  < RAW TENSOR >")
-                print(pred)
-                print()
+                print("\n  < RAW TENSOR >\n", pred, "\n")
 
         pred = pred.detach().cpu().numpy()
-        print()
-        print(
-            "  - Pred: `{}`".format(
-                ''.join(
-                    map(
-                        lambda idx: I2C[idx],
-                        list(map(
-                            lambda out: np.argmax(out),
-                            pred[0]
-                        ))
-                    )
-                )
-            )
-        )
-        print()
+        s = "".join(I2C[int(np.argmax(out))] for out in pred[0])
+        print(f"\n  - Pred: `{s}`\n")
 
-        if not questionary.confirm(
-            "Continue?",
-            default=True,
-        ).ask():
+        if not questionary.confirm("Continue?", default=True).ask():
             break
-
 
 
 if __name__ in {"__main__", "__mp_main__"}:
