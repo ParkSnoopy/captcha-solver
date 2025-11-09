@@ -5,6 +5,3 @@ tzdata
 
 numpy
 pillow
-
-torch
-torchvision
