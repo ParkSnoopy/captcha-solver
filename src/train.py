@@ -177,11 +177,11 @@ def main():
         # Test with random samples
         test_images = random.sample(image_paths, k=TEST_SIZE)
 
-        _total = 0;
-        _pass  = 0;
+        _total = 0
+        _pass  = 0
 
         for image_path in test_images:
-            _total += 1;
+            _total += 1
 
             label = image_path.stem.split('.')[0]
             img = Image.open(image_path)
@@ -198,7 +198,7 @@ def main():
             ))
 
             if pred.upper() == label.upper():
-                _pass += 1;
+                _pass += 1
                 print(f"      - Test[{_total:5^}]: PASS ( {pred} ~= {label} ) [ Current Accuracy `{100*_pass/_total:.02f}` % ]", end="\n")
             else:
                 print(f"      - Test[{_total:5^}]: FAIL ( {pred} != {label} )", end="\r")
@@ -230,4 +230,4 @@ def main():
 
 
 if __name__ == "__main__": #in {"__main__", "__mp_main__"}:
-    main();
+    main()

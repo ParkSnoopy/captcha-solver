@@ -1,17 +1,12 @@
-import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.utils.data import Dataset
 
 from pathlib import Path
-from PIL import Image, ImageFile
+from PIL import Image
 
 from helper import (
     C2I,
-)
-from config import (
-    MAX_W, MAX_H,
 )
 
 

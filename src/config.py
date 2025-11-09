@@ -11,9 +11,8 @@ from torch      import device
 if USE_GPU and not have_gpu(): raise Exception("No GPU")
 DEVICE = device("cuda" if have_gpu() else "cpu")
 
-DATA_DIR = Path("./data/ready/")
+DATA_DIR = Path("./data/")
 TRAIN_PERC = 0.90
-TEST_SIZE = 100
 
 BATCH_SIZE = 64
 NUM_WORKERS = 4
@@ -23,8 +22,8 @@ EPOCHS = 50
 TRAINED_DIR = Path("./checkpoints/")
 RAW_TENSOR = False
 
-# test.py
-TEST_DIR = Path("./data/test/")
+# evalu.py
+TEST_SIZE = 100
 
 # helper.py
 # max among `{ (40, 150, 3), (50, 200, 3), (50, 180), (50, 200, 4), (256, 256, 3) }`

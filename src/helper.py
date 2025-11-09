@@ -1,4 +1,3 @@
-import torch
 import torchvision.transforms as T
 import numpy as np
 
@@ -6,9 +5,6 @@ from PIL import Image
 from collections import Counter
 
 from config import (
-    DEBUG,
-    DEVICE,
-
     MAX_W, MAX_H,
 )
 
@@ -45,7 +41,7 @@ def get_dominant_corner_color(img: Image, _sample=0.05):
     pixels = [tuple(rgb) for rgb in corners]
     most_common = Counter(pixels).most_common(1)[0][0]
 
-    return most_common;
+    return most_common
 
 def rgb_from_grayscale(img) -> Image:
     return img.convert("RGB")
@@ -76,7 +72,7 @@ def reshape(img: Image) -> Image:
         ),
     ])
 
-    return unify(img);
+    return unify(img)
 
 def fit_image(img: Image) -> Image:
     # Grayscale

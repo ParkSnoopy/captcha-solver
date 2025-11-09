@@ -12,15 +12,12 @@ from helper import (
 )
 from config import (
     DEVICE,
-    DEBUG,
     RAW_TENSOR,
     TRAINED_DIR,
     DATA_DIR,
-    MAX_W, MAX_H,
 )
 from train import (
     USE_MODEL,
-    USE_DATASET,
 )
 
 
@@ -30,13 +27,13 @@ def main():
     device = DEVICE
 
     def check_is_file(path:str) -> bool:
-        return Path(path).is_file();
+        return Path(path).is_file()
 
     model_file_path = questionary.path(
         "Select model to use",
         default=TRAINED_DIR,
         validate=check_is_file,
-    ).ask();
+    ).ask()
 
     model = USE_MODEL(
         num_classes   =36,
@@ -61,7 +58,7 @@ def main():
             "Select image to evaluate",
             default=DATA_DIR,
             validate=check_is_file,
-        ).ask();
+        ).ask()
 
         # Open, Pad with dominant edge pixel, Resize to (256x128), ToTensor, Normalize
         img = Image.open(evaluation_file_path).convert("RGB")
@@ -99,9 +96,9 @@ def main():
             "Continue?",
             default=True,
         ).ask():
-            break;
+            break
 
 
 
 if __name__ in {"__main__", "__mp_main__"}:
-    main();
+    main()
