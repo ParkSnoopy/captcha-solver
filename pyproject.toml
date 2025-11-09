@@ -10,7 +10,7 @@ dependencies = [
 
     # feature: frontend
     "questionary",
-    #"tqdm",
+    "tqdm",
 
     # feature: computate
     "numpy",

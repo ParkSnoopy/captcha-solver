@@ -4,10 +4,10 @@ from PIL import Image
 from collections import Counter
 from typing import Tuple
 
-from config import MAX_W, MAX_H
+from config import MAX_W, MAX_H, CHARSET
 
 # Index ↔ Char maps (26 letters + 10 digits)
-I2C = {i: k for i, k in enumerate("QWERTYUIOPASDFGHJKLZXCVBNM1234567890")}
+I2C = {i: k for i, k in enumerate(CHARSET)}
 C2I = {k: i for i, k in I2C.items()}
 
 # ImageNet normalization (keep in sync with train/eval)

@@ -6,9 +6,10 @@ from torch.utils.data import Dataset
 from PIL import Image
 
 from helper import C2I
+from config import MAX_W, MAX_H
 
 
-class CaptchaDatasetV21(Dataset):
+class CaptchaDatasetV22(Dataset):
     def __init__(self, img_paths: List[Path], transform=None, captcha_length: int = 5):
         self.img_paths = img_paths
         self.transform = transform
@@ -34,39 +35,77 @@ class CaptchaDatasetV21(Dataset):
         return img, label_tensor
 
 
-class CaptchaModelV21(nn.Module):
-    def __init__(self, num_classes: int = 36, captcha_length: int = 5):
+class ConvBlockV22(nn.Module):
+    """Conv→BN→GELU→Dropout. Stride=2 performs downsampling."""
+
+    def __init__(
+        self,
+        channels_in: int,
+        channels_out: int,
+        kernel_size=3,
+        stride=1,
+        padding=1,
+        dropout=0.1,
+    ):
         super().__init__()
-        self.captcha_length = captcha_length
+        self.conv = nn.Conv2d(
+            channels_in,
+            channels_out,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+        )
+        self.norm = nn.BatchNorm2d(channels_out)
+        self.gelu = nn.GELU()
+        self.drop = nn.Dropout2d(dropout)
 
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.conv(x)
+        x = self.norm(x)
+        x = self.gelu(x)
+        x = self.drop(x)
+        return x
+
+
+class CaptchaModelV22(nn.Module):
+    def __init__(
+        self, n_class: int, len_captcha: int, dropout=0.1, blocks=[32, 64, 128, 256]
+    ):
+        super().__init__()
+        self.len_captcha = len_captcha
+
+        # Start from channel=3 (RGB layer)
+        blocks.insert(0, 3)
         self.cnn = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=3, padding="same"),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
-
-            nn.Conv2d(32, 64, kernel_size=3, padding="same"),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
-
-            nn.Conv2d(64, 256, kernel_size=3, padding="same"),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
-
-            nn.Conv2d(256, 1024, kernel_size=3, padding="same"),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
-
-            nn.Conv2d(1024, 2048, kernel_size=3, padding="same"),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
+            ConvBlockV22(
+                channels_in=blocks[0],
+                channels_out=blocks[1],
+                dropout=dropout,
+                stride=1,
+            ),
+            *[
+                ConvBlockV22(
+                    channels_in=blocks[i],
+                    channels_out=blocks[i + 1],
+                    dropout=dropout,
+                    stride=2,
+                )
+                for i in range(1, len(blocks) - 1)
+            ],
         )
 
-        # For 250x100 inputs → 2048 × 3 × 7
-        cnn_output_size = 43008
+        cnn_output_size = self._infer_flatten_dim()
+
         self.classifier = nn.ModuleList(
-            [nn.Linear(cnn_output_size, num_classes) for _ in range(captcha_length)]
+            [nn.Linear(cnn_output_size, n_class) for _ in range(len_captcha)]
         )
         self.dropout = nn.Dropout(0.10)
+
+    @torch.no_grad()
+    def _infer_flatten_dim(self) -> int:
+        dummy = torch.zeros(1, 3, MAX_H, MAX_W)
+        y = self.cnn(dummy)
+        return int(y.numel())
 
     def forward(self, x):
         feat = self.cnn(x)

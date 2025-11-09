@@ -5,7 +5,7 @@ import questionary
 import torch
 from PIL import Image
 
-from config import DEVICE, RAW_TENSOR, TRAINED_DIR, DATA_DIR
+from config import DEVICE, RAW_TENSOR, TRAINED_DIR, DATA_DIR, MODEL_CONFIG
 from helper import TRANSFORM, fit_image, I2C
 from train import USE_MODEL
 
@@ -20,7 +20,7 @@ def main():
     ).ask()
 
     checkpoint = torch.load(model_file_path, map_location=DEVICE)
-    model = USE_MODEL(num_classes=36, captcha_length=5)
+    model = USE_MODEL(**MODEL_CONFIG)
     model.load_state_dict(checkpoint["model"], strict=False)
     model.to(DEVICE).eval()
 

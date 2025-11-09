@@ -2,15 +2,16 @@ import random
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
+from tqdm.auto import tqdm, trange
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from PIL import Image
 from torch.utils.data import DataLoader
+from PIL import Image
 
-from model import CaptchaDatasetV21, CaptchaModelV21
+from model import CaptchaDatasetV22, CaptchaModelV22
 from helper import fit_image, TRANSFORM, I2C
 from config import (
     SEED,
@@ -25,15 +26,17 @@ from config import (
     EPOCHS,
     TRAINED_DIR,
     USE_GPU,
+    LENGTH,
+    MODEL_CONFIG,
 )
 
 random.seed(SEED)
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 
-MODEL_PRETTY_NAME = "CaptchaModel_v2.1"
-USE_MODEL = CaptchaModelV21
-USE_DATASET = CaptchaDatasetV21
+MODEL_PRETTY_NAME = "v2.2"
+USE_MODEL = CaptchaModelV22
+USE_DATASET = CaptchaDatasetV22
 TIMEZONE = ZoneInfo("Asia/Shanghai")
 
 
@@ -67,10 +70,10 @@ def main():
 
     print("  - Data to Dataset")
     train_dataset = USE_DATASET(
-        img_paths=train_images, transform=TRANSFORM, captcha_length=5
+        img_paths=train_images, transform=TRANSFORM, captcha_length=LENGTH
     )
     valid_dataset = USE_DATASET(
-        img_paths=valid_images, transform=TRANSFORM, captcha_length=5
+        img_paths=valid_images, transform=TRANSFORM, captcha_length=LENGTH
     )
 
     print("  - Dataset to DataLoader")
@@ -78,7 +81,7 @@ def main():
     valid_loader = _make_loader(valid_dataset, shuffle=False)
 
     print(f"  - Load Model ( {MODEL_PRETTY_NAME} )")
-    model = USE_MODEL(num_classes=36, captcha_length=5).to(DEVICE)
+    model = USE_MODEL(**MODEL_CONFIG).to(DEVICE)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=5e-4, weight_decay=1e-4)
 
@@ -154,7 +157,7 @@ def main():
             "epoch": epoch + 1,
             "model": model.state_dict(),
             "optimizer": optimizer.state_dict(),
-            "args": {"width": MAX_W, "height": MAX_H},
+            "args": {"width": MAX_W, "height": MAX_H, "model_config": MODEL_CONFIG},
         }
         torch.save(state, str(filename))
         print(f"      - Model saved as `{filename}`")
