@@ -56,10 +56,11 @@ def _make_loader(dataset, shuffle: bool):
 
 
 def main():
-    print("  - Detect device:", DEVICE)
+    tqdm.write(f"Detect device: {DEVICE}")
     _ensure_dirs()
 
-    print("  - Data Load")
+    # Data discovery
+    tqdm.write("Loading image paths…")
     data_dir = Path(DATA_DIR)
     image_paths = list(data_dir.glob("*.png"))
     random.shuffle(image_paths)
@@ -68,7 +69,7 @@ def main():
     train_images = image_paths[:train_n]
     valid_images = image_paths[train_n:]
 
-    print("  - Data to Dataset")
+    tqdm.write("Building datasets…")
     train_dataset = USE_DATASET(
         img_paths=train_images, transform=TRANSFORM, captcha_length=LENGTH
     )
@@ -76,56 +77,67 @@ def main():
         img_paths=valid_images, transform=TRANSFORM, captcha_length=LENGTH
     )
 
-    print("  - Dataset to DataLoader")
+    tqdm.write("Building dataloaders…")
     train_loader = _make_loader(train_dataset, shuffle=True)
     valid_loader = _make_loader(valid_dataset, shuffle=False)
 
-    print(f"  - Load Model ( {MODEL_PRETTY_NAME} )")
+    tqdm.write(f"Loading model ({MODEL_PRETTY_NAME})…")
     model = USE_MODEL(**MODEL_CONFIG).to(DEVICE)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=5e-4, weight_decay=1e-4)
 
-    print("  - Train Start")
-    for epoch in range(EPOCHS):
-        print(f"\n    - Training `{epoch + 1}` / `{EPOCHS}`")
-
+    # --- Training loop with tqdm ---
+    epoch_bar = trange(EPOCHS, desc="Epoch", unit="epoch")
+    for epoch in epoch_bar:
         model.train()
         running = 0.0
-        total_batches = len(train_loader)
 
-        for i, (images, labels) in enumerate(train_loader, 1):
+        batch_bar = tqdm(
+            train_loader,
+            desc=f"Train {epoch + 1}/{EPOCHS}",
+            unit="batch",
+            leave=False,
+        )
+
+        for i, (images, labels) in enumerate(batch_bar, 1):
             images = images.to(DEVICE, non_blocking=True)
             labels = labels.to(DEVICE, non_blocking=True)
 
             optimizer.zero_grad(set_to_none=True)
             outputs = model(images)
-
             loss = criterion(outputs.view(-1, outputs.size(-1)), labels.view(-1))
             loss.backward()
             optimizer.step()
 
             running += loss.item()
-            if i % 10 == 0 or i == total_batches:
-                avg = running / i
-                print(f"      - Train {i}/{total_batches} | Loss: {avg:.6f}", end="\r")
+            avg = running / i
+            batch_bar.set_postfix(loss=f"{avg:.6f}")
 
-        train_loss = running / total_batches
-        print(f"\n      - Loss[Train]: `{train_loss:.06f}`")
+        train_loss = running / max(1, len(train_loader))
+        tqdm.write(f"Loss[Train]: {train_loss:.06f}")
 
         # Validation
         model.eval()
         val_running = 0.0
         with torch.no_grad():
-            for images, labels in valid_loader:
+            val_bar = tqdm(
+                valid_loader,
+                desc="Valid",
+                unit="batch",
+                leave=False,
+            )
+            for images, labels in val_bar:
                 images = images.to(DEVICE, non_blocking=True)
                 labels = labels.to(DEVICE, non_blocking=True)
                 outputs = model(images)
-                val_running += criterion(
+                batch_loss = criterion(
                     outputs.view(-1, outputs.size(-1)), labels.view(-1)
                 ).item()
+                val_running += batch_loss
+                val_bar.set_postfix(loss=f"{(val_running / max(1, val_bar.n)):.6f}")
 
         valid_loss = val_running / max(1, len(valid_loader))
-        print(f"      - Loss[Valid]: `{valid_loss:.06f}`")
+        tqdm.write(f"Loss[Valid]: {valid_loss:.06f}")
 
         # Probe accuracy on a random subset
         probe_n = min(TEST_SIZE, len(image_paths))
@@ -133,7 +145,13 @@ def main():
         total = 0
         ok = 0
         with torch.no_grad():
-            for image_path in test_images:
+            probe_bar = tqdm(
+                test_images,
+                desc="Probe",
+                unit="img",
+                leave=False,
+            )
+            for image_path in probe_bar:
                 total += 1
                 label = image_path.stem.split(".")[0]
                 img = Image.open(image_path)
@@ -143,9 +161,12 @@ def main():
                 pred_str = "".join(I2C[int(np.argmax(out))] for out in pred[0])
                 if pred_str.upper() == label.upper():
                     ok += 1
+                acc_live = 100.0 * ok / max(1, total)
+                probe_bar.set_postfix(acc=f"{acc_live:.2f}%")
+
         acc = 100.0 * ok / max(1, total)
-        print(
-            f"      -  Accuracy  : `{acc:.02f}` % (Total `{total}`, Pass `{ok}`, Fail `{total - ok}`)"
+        tqdm.write(
+            f"Accuracy: {acc:.02f}% (Total {total}, Pass {ok}, Fail {total - ok})"
         )
 
         # Save checkpoint
@@ -160,7 +181,7 @@ def main():
             "args": {"width": MAX_W, "height": MAX_H, "model_config": MODEL_CONFIG},
         }
         torch.save(state, str(filename))
-        print(f"      - Model saved as `{filename}`")
+        tqdm.write(f"Model saved: {filename}")
 
 
 if __name__ == "__main__":
