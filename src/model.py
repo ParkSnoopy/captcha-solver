@@ -48,51 +48,51 @@ class CaptchaModelV21(nn.Module):
         # Define CNN
         self.cnn = nn.Sequential(
             nn.Conv2d(
-                3, 32,
-                kernel_size=(3, 6),
-                padding=(1, 3),
+                32,
+                kernel_size=(3, 3),
+                padding="same",
+                activation="relu"
             ),
-            nn.ReLU(),
             nn.MaxPool2d(
                 kernel_size=(2, 2),
             ),
 
             nn.Conv2d(
-                32, 64,
-                kernel_size=(3, 6),
-                padding=(1, 3),
+                64,
+                kernel_size=(3, 3),
+                padding="same",
+                activation="relu"
             ),
-            nn.ReLU(),
             nn.MaxPool2d(
                 kernel_size=(2, 2),
             ),
 
             nn.Conv2d(
-                64, 256,
-                kernel_size=(3, 6),
-                padding=(1, 3),
+                256,
+                kernel_size=(3, 3),
+                padding="same",
+                activation="relu"
             ),
-            nn.ReLU(),
             nn.MaxPool2d(
                 kernel_size=(2, 2),
             ),
 
             nn.Conv2d(
-                256, 1024,
-                kernel_size=(3, 6),
-                padding=(1, 3),
+                1024,
+                kernel_size=(3, 3),
+                padding="same",
+                activation="relu"
             ),
-            nn.ReLU(),
             nn.MaxPool2d(
                 kernel_size=(2, 2),
             ),
 
             nn.Conv2d(
-                1024, 4096,
-                kernel_size=(3, 6),
-                padding=(1, 3),
+                2048,
+                kernel_size=(3, 3),
+                padding="same",
+                activation="relu"
             ),
-            nn.ReLU(),
             nn.MaxPool2d(
                 kernel_size=(2, 2),
             ),
@@ -105,7 +105,7 @@ class CaptchaModelV21(nn.Module):
             nn.Linear(cnn_output_size, num_classes) for _ in range(captcha_length)
         ])
 
-        self.dropout = nn.Dropout(0.3)
+        self.dropout = nn.Dropout(0.10)
 
     def forward(self, x):
 

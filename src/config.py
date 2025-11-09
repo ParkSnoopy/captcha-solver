@@ -1,3 +1,5 @@
+from pathlib import Path
+
 DEBUG = True
 SEED  = 42**3
 
@@ -9,7 +11,7 @@ from torch      import device
 if USE_GPU and not have_gpu(): raise Exception("No GPU")
 DEVICE = device("cuda" if have_gpu() else "cpu")
 
-DATA_DIR = "./data/ready/"
+DATA_DIR = Path("./data/ready/")
 TRAIN_PERC = 0.90
 TEST_SIZE = 100
 
@@ -18,13 +20,12 @@ NUM_WORKERS = 4
 EPOCHS = 50
 
 # evalu.py
-TRAINED_DIR = "./trained/"
+TRAINED_DIR = Path("./checkpoints/")
 RAW_TENSOR = False
 
 # test.py
-TEST_DIR = "./data/test/"
-#TEST_DIR = "./data/ready/"
+TEST_DIR = Path("./data/test/")
 
 # helper.py
 # max among `{ (40, 150, 3), (50, 200, 3), (50, 180), (50, 200, 4), (256, 256, 3) }`
-MAX_W, MAX_H = (256, 128)
+MAX_W, MAX_H = (250, 100)

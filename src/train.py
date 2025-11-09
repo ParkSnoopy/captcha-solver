@@ -25,12 +25,14 @@ from config import (
     SEED,
     USE_GPU,
     DEVICE,
+    MAX_W, MAX_H,
     DATA_DIR,
     TRAIN_PERC,
     BATCH_SIZE,
     NUM_WORKERS,
     TEST_SIZE,
     EPOCHS,
+    TRAINED_DIR,
 )
 
 random      .seed(SEED)
@@ -204,12 +206,18 @@ def main():
         print(f"\n      -  Accuracy  : `{100*_pass/_total:.02f}` % (Total `{_total}`, Pass `{_pass}`, Fail `{_total-_pass}`)")
 
         # Save model
-        filename = f"./trained/{datetime.now(tz=TIMEZONE).strftime("%Y%m%d_%H%M%S")}_epoch{epoch+1:02}_on_{MODEL_PRETTY_NAME}.pth"
+        filename = str(
+            TRAINED_DIR /
+            f"{datetime.now(tz=TIMEZONE).strftime("%Y%m%d_%H%M%S")}_epoch{epoch+1:02}_on_{MODEL_PRETTY_NAME}.pth"
+        )
 
         state = {
             'epoch': epoch + 1,
             'model': model.state_dict(),
             'optimizer': optimizer.state_dict(),
+            'args': {
+                "width": 
+            },
         }
 
         torch.save(

@@ -13,6 +13,9 @@ wheels/
 .private/
 .ipynb_checkpoints/
 
-# Large binary
-data/
-trained/
+# Binary
+*.jpeg
+*.jpg
+*.png
+*.pt
+*.pth
