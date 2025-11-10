@@ -102,7 +102,7 @@ def main(cli_args):
         with torch.no_grad():
             pred = model(x)
             if cli_args.raw_tensor:
-                tqdm.write("\n  < RAW TENSOR >\n", pred, "\n")
+                tqdm.write(f"\n  < RAW TENSOR >\n{pred}\n")
 
         pred = pred.detach().cpu().numpy()
         s = "".join(I2C[int(np.argmax(out))] for out in pred[0])
