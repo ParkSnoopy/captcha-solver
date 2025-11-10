@@ -172,7 +172,7 @@ def main():
         # Save checkpoint
         filename = (
             TRAINED_DIR
-            / f"{datetime.now(tz=TIMEZONE).strftime('%Y%m%d_%H%M%S')}_epoch{epoch + 1:02}_on_{MODEL_PRETTY_NAME}.pth"
+            + f"{datetime.now(tz=TIMEZONE).strftime('%Y%m%d_%H%M%S')}_epoch{epoch + 1:02}_on_{MODEL_PRETTY_NAME}.pth"
         )
         state = {
             "epoch": epoch + 1,

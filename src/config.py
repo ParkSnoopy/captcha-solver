@@ -1,4 +1,3 @@
-from pathlib import Path
 from torch import device
 from torch.cuda import is_available as have_gpu
 
@@ -13,25 +12,25 @@ if USE_GPU and not have_gpu():
     raise RuntimeError("USE_GPU=True but no CUDA device is available.")
 DEVICE = device("cuda" if (USE_GPU and have_gpu()) else "cpu")
 
-DATA_DIR = Path("./dist5/")
+DATA_DIR = "./dist/"
 TRAIN_PERC = 0.90
 
 BATCH_SIZE = 64
 NUM_WORKERS = 4
 EPOCHS = 20
 
-TRAINED_DIR = Path("./checkpoints/")
+TRAINED_DIR = "./checkpoints/"
 RAW_TENSOR = False
 
 TEST_SIZE = 100
 
 # Input canvas (W, H)
 MAX_W, MAX_H = (250, 100)
-LENGTH = 5
+LENGTH = 4
 
 MODEL_CONFIG = {
     "n_class": len(CHARSET),
     "len_captcha": LENGTH,
-    #          100 50   25   12    6
-    "blocks": [64, 128, 256, 1024, 2048],
+    #          100 50   25   12    6     ...
+    "blocks": [64, 256, 512, 2048, ],
 }
