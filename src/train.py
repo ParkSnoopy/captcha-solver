@@ -41,7 +41,7 @@ TIMEZONE = ZoneInfo("Asia/Shanghai")
 
 
 def _ensure_dirs():
-    TRAINED_DIR.mkdir(parents=True, exist_ok=True)
+    Path(TRAINED_DIR).mkdir(parents=True, exist_ok=True)
 
 
 def _make_loader(dataset, shuffle: bool):

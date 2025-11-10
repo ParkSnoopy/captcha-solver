@@ -45,6 +45,11 @@ def main():
         k=evaluation_n,
     )
 
+    evalu_len = len(evaluation_file_paths[0].name.split('.')[0])
+    train_len = checkpoint["args"]["model_config"]["len_captcha"]
+    if evalu_len != train_len:
+        raise ValueError(f"Trained for length `{train_len}`, but got `{evalu_len}`")
+
     for img_path in evaluation_file_paths:
         img = Image.open(img_path)
         img = fit_image(img)

@@ -79,11 +79,11 @@ class CaptchaModelV22(nn.Module):
         self.len_captcha = len_captcha
 
         # Start from channel=3 (RGB layer)
-        blocks.insert(0, 3)
+        _initial_channel = 3
         self.cnn = nn.Sequential(
             ConvBlockV22(
-                channels_in=blocks[0],
-                channels_out=blocks[1],
+                channels_in=_initial_channel,
+                channels_out=blocks[0],
                 dropout=dropout,
                 stride=1,
             ),
@@ -94,7 +94,7 @@ class CaptchaModelV22(nn.Module):
                     dropout=dropout,
                     stride=2,
                 )
-                for i in range(1, len(blocks) - 1)
+                for i in range(len(blocks) - 1)
             ],
         )
 
