@@ -1,0 +1,55 @@
+C:\Users\sunwoo\Documents\.LOCAL\captcha-solver>uv run src\visualize.py --seed 42 --model .\checkpoints\CaptchaModel_v2.2_epoch10.pth --data .\dist.smol\ --save-dir .\viz\epoch10
+Eval: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 155/155 [00:04<00:00, 34.71img/s, string_acc=89.68%]
+
+=== SUMMARY ===
+Total images: 155
+String accuracy: 89.68%
+Per-position accuracy (%): [95.48, 98.71, 96.77, 98.06]
+[PARAMS] total=31,356,048, trainable=31,356,048
+[FLOPs] bs=1 input (3x100x250) -> 1.058 GFLOPs
+[LATENCY] bs=1 runs=200
+  avg=17.782 ms  p50=17.680 ms  p90=18.624 ms  p95=19.514 ms
+
+Saved figures → C:\Users\sunwoo\Documents\.LOCAL\captcha-solver\viz\epoch10
+
+C:\Users\sunwoo\Documents\.LOCAL\captcha-solver>uv run src\visualize.py --seed 42 --model .\checkpoints\CaptchaModel_v2.2_epoch07.pth --data .\dist.smol\ --save-dir .\viz\epoch07
+Eval: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 155/155 [00:04<00:00, 35.22img/s, string_acc=70.97%]
+
+=== SUMMARY ===
+Total images: 155
+String accuracy: 70.97%
+Per-position accuracy (%): [87.74, 91.61, 89.03, 96.77]
+[PARAMS] total=31,356,048, trainable=31,356,048
+[FLOPs] bs=1 input (3x100x250) -> 1.058 GFLOPs
+[LATENCY] bs=1 runs=200
+  avg=17.475 ms  p50=17.290 ms  p90=18.366 ms  p95=18.896 ms
+
+Saved figures → C:\Users\sunwoo\Documents\.LOCAL\captcha-solver\viz\epoch07
+
+C:\Users\sunwoo\Documents\.LOCAL\captcha-solver>uv run src\visualize.py --seed 42 --model .\checkpoints\CaptchaModel_v2.2_epoch04.pth --data .\dist.smol\ --save-dir .\viz\epoch04
+Eval: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 155/155 [00:05<00:00, 26.85img/s, string_acc=8.39%]
+
+=== SUMMARY ===
+Total images: 155
+String accuracy: 8.39%
+Per-position accuracy (%): [50.32, 52.26, 55.48, 54.84]
+[PARAMS] total=31,356,048, trainable=31,356,048
+[FLOPs] bs=1 input (3x100x250) -> 1.058 GFLOPs
+[LATENCY] bs=1 runs=200
+  avg=17.969 ms  p50=17.800 ms  p90=18.924 ms  p95=20.120 ms
+
+Saved figures → C:\Users\sunwoo\Documents\.LOCAL\captcha-solver\viz\epoch04
+
+C:\Users\sunwoo\Documents\.LOCAL\captcha-solver>uv run src\visualize.py --seed 42 --model .\checkpoints\CaptchaModel_v2.2_epoch01.pth --data .\dist.smol\ --save-dir .\viz\epoch01
+Eval: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 155/155 [00:04<00:00, 31.48img/s, string_acc=0.00%]
+
+=== SUMMARY ===
+Total images: 155
+String accuracy: 0.00%
+Per-position accuracy (%): [5.16, 8.39, 3.87, 7.1]
+[PARAMS] total=31,356,048, trainable=31,356,048
+[FLOPs] bs=1 input (3x100x250) -> 1.058 GFLOPs
+[LATENCY] bs=1 runs=200
+  avg=18.046 ms  p50=17.820 ms  p90=19.314 ms  p95=20.404 ms
+
+Saved figures → C:\Users\sunwoo\Documents\.LOCAL\captcha-solver\viz\epoch01
