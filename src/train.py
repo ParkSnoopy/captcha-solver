@@ -53,7 +53,7 @@ def _build_model_config(cli_args):
     }
 
 
-def parse_args():
+def parse_args(args=None):
     parser = argparse.ArgumentParser(
         description="Train the CAPTCHA model",
     )
@@ -174,7 +174,7 @@ def parse_args():
         help="Verbose output",
     )
 
-    return parser.parse_args()
+    return parser.parse_args(args)
 
 
 def main(cli_args):
@@ -317,5 +317,15 @@ def main(cli_args):
 
 
 if __name__ == "__main__":
+    '''
+    cli_args = parse_args([
+        "--epochs", "5",
+        "--blocks", "32,64,256,512,1024,2048",
+        "--batch-size", "256",
+        "--workers-n", "4",
+        "--save-dir", "/kaggle/working/checkpoints/",
+        "--use-gpu",
+    ])
+    '''
     cli_args = parse_args()
     main(cli_args=cli_args)
