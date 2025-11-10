@@ -138,37 +138,26 @@ def sanitize_blocks(blocks):
     return blocks
 
 
-def find_latest_ckpt(ckpt_dir: Path):
-    cands = sorted(ckpt_dir.glob("*.pth"))
-    if not cands:
-        raise FileNotFoundError(f"No checkpoints under: {ckpt_dir}")
-    # 파일명에 타임스탬프가 포함되므로 사전순 정렬로도 최신이 뒤쪽일 가능성 큼
-    return cands[-1]
-
-
 # -----------------------------
 # CLI
 # -----------------------------
 def main():
     ap = argparse.ArgumentParser("Benchmark CaptchaModelV22")
-    ap.add_argument("--ckpt", type=str, default=None, help="checkpoint path (.pth)")
+    ap.add_argument("--model", type=Path, required=True, help="checkpoint path (.pth)")
     ap.add_argument(
         "--use-gpu",
         action="store_true",
         default=False,
     )
-    ap.add_argument("--bs", type=int, default=1, help="batch size for latency")
+    ap.add_argument("--batch-size", type=int, default=1, help="batch size for latency")
     ap.add_argument("--runs", type=int, default=200)
     ap.add_argument("--warmup", type=int, default=20)
     args = ap.parse_args()
 
-    ckpt_path = (
-        Path(args.ckpt) if args.ckpt else find_latest_ckpt(Path("./checkpoints"))
-    )
-    state = torch.load(str(ckpt_path), weights_only=False)
+    state = torch.load(str(args.model), weights_only=False)
     train_conf = state["model_config"]
     train_args = state["cli_args"]
-    print(f"[INFO] Using checkpoint: {ckpt_path}")
+    print(f"[INFO] Using checkpoint: {args.model}")
 
     device = torch.device("cuda" if args.use_gpu else "cpu")
     print(f"[INFO] Device: {device}")
@@ -196,7 +185,7 @@ def main():
         train_args=train_args,
         model=model,
         device=device,
-        batch_size=args.bs,
+        batch_size=args.batch_size,
         warmup=args.warmup,
         runs=args.runs,
     )

@@ -317,7 +317,7 @@ def main(cli_args):
 
 
 if __name__ == "__main__":
-    '''
+    """
     cli_args = parse_args([
         "--epochs", "5",
         "--blocks", "32,64,256,512,1024,2048",
@@ -326,6 +326,6 @@ if __name__ == "__main__":
         "--save-dir", "/kaggle/working/checkpoints/",
         "--use-gpu",
     ])
-    '''
+    """
     cli_args = parse_args()
     main(cli_args=cli_args)
