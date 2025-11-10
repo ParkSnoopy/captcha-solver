@@ -5,7 +5,6 @@ description = "CAPTCHA solver AI"
 requires-python = ">=3.13"
 dependencies = [
     # feature: frontend
-    "questionary",
     "argparse",
     "tqdm",
 

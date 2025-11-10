@@ -1,9 +1,10 @@
+import argparse
 from pathlib import Path
 from random import choices
-import argparse
+from tqdm.auto import tqdm
 
-import numpy as np
 import torch
+import numpy as np
 from PIL import Image
 
 from helper import TRANSFORM, fit_image, I2C
@@ -66,11 +67,11 @@ def parse_args() -> argparse.Namespace:
 def main(cli_args):
     device = torch.device("cude" if cli_args.use_gpu else "cpu")
 
-    checkpoint = torch.load(cli_args.model, map_location=device)
-    print(checkpoint["args"])
-    model = USE_MODEL(
-        **(checkpoint["args"]["model_config"])
-    )
+    checkpoint = torch.load(cli_args.model, weights_only=False)
+    model_conf = checkpoint["model_config"]
+    train_args = checkpoint["cli_args"]
+    print(model_conf)
+    model = USE_MODEL(**model_conf)
     model.load_state_dict(checkpoint["model"], strict=True)
     model.to(device).eval()
 
@@ -83,11 +84,17 @@ def main(cli_args):
     image_paths = choices(image_paths_as_list, k=cli_args.num)
 
     evalu_len = len(image_paths[0].name.split(".")[0])
-    train_len = checkpoint["args"]["model_config"]["len_captcha"]
+    train_len = train_args.length
     if evalu_len != train_len:
         raise ValueError(f"Trained for length `{train_len}`, but got `{evalu_len}`")
 
-    for img_path in image_paths:
+    progress_bar = tqdm(
+        image_paths,
+        desc="Evaluate",
+        unit="img",
+        leave=False,
+    )
+    for img_path in progress_bar:
         img = Image.open(img_path)
         img = fit_image(img)
         x = TRANSFORM(img).unsqueeze(0).to(device)
@@ -95,11 +102,11 @@ def main(cli_args):
         with torch.no_grad():
             pred = model(x)
             if cli_args.raw_tensor:
-                print("\n  < RAW TENSOR >\n", pred, "\n")
+                tqdm.write("\n  < RAW TENSOR >\n", pred, "\n")
 
         pred = pred.detach().cpu().numpy()
         s = "".join(I2C[int(np.argmax(out))] for out in pred[0])
-        print(f"  - Eval: `{img_path.name}` -> {s}")
+        tqdm.write(f"  `{img_path.name}` -> `{s}`")
 
 
 if __name__ in {"__main__", "__mp_main__"}:
