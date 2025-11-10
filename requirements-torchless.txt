@@ -1,7 +1,5 @@
-questionary
-tqdm
-
-tzdata
-
+argparse
 numpy
 pillow
+tqdm
+tzdata
