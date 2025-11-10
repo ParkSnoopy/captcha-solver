@@ -12,6 +12,7 @@ wheels/
 # Private save files
 .private/
 .ipynb_checkpoints/
+viz/
 
 # Binary
 *.jpeg

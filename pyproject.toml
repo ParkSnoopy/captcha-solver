@@ -13,11 +13,12 @@ dependencies = [
     "pillow",
 
     # feature: deeplearning
-    #"scikit-learn",
-    #"albumentations",
     "torch",
     "torchvision",
 
     # feature: save model with local timezone
     "tzdata",
+
+    # feature: visualize
+    "matplotlib",
 ]
