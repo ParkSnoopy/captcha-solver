@@ -1,13 +1,3 @@
-# visualize.py
-# Usage:
-#   python visualize.py \
-#     --model ./checkpoints/20250101_1200_epoch10_on_v2.2.pth \
-#     --data  ./dist \
-#     --num 1000 \
-#     --examples 24 \
-#     --save-dir ./viz \
-#     --use-gpu
-
 import argparse
 import json
 import math
@@ -26,39 +16,16 @@ from helper import TRANSFORM, fit_image, I2C, C2I
 from config import CHARSET, MAX_H, MAX_W, SEED
 from train import USE_MODEL  # CaptchaModelV22
 
-
-# -----------------------------
-# Matplotlib (plots)
-# -----------------------------
 import matplotlib
 
-matplotlib.use("Agg")  # 파일 저장용 백엔드
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+# IF ON WINDOWS: Handling POSIX path error on Windows
+import pathlib
 
-def parse_args() -> argparse.Namespace:
-    ap = argparse.ArgumentParser("Visualize results of captcha model")
-    ap.add_argument("-m", "--model", type=Path, required=True, help="checkpoint (.pth)")
-    ap.add_argument("-d", "--data", type=Path, required=True, help="image dir")
-    ap.add_argument("-n", "--num", type=int, default=500, help="num images to sample")
-    ap.add_argument("--seed", type=int, default=SEED)
-    ap.add_argument("--use-gpu", action="store_true", default=False)
-    ap.add_argument("--save-dir", type=Path, default=Path("./viz"))
-    ap.add_argument("--examples", type=int, default=16, help="# of annotated examples")
-    ap.add_argument(
-        "--grid-cols", type=int, default=8, help="grid columns for examples"
-    )
-    ap.add_argument("--topk", type=int, default=3, help="top-k to record per position")
-    ap.add_argument(
-        "--profile-model",
-        action="store_true",
-        default=True,
-        help="measure params/FLOPs/latency and save a txt",
-    )
-    ap.add_argument("--latency-batch", type=int, default=1)
-    ap.add_argument("--latency-runs", type=int, default=200)
-    ap.add_argument("--latency-warmup", type=int, default=20)
-    return ap.parse_args()
+temp = pathlib.PosixPath
+pathlib.PosixPath = pathlib.WindowsPath
 
 
 # -----------------------------
@@ -217,13 +184,14 @@ def main(cli_args):
 
     _ensure_dir(cli_args.save_dir)
 
-    # 1) load checkpoint & model
-    ckpt = torch.load(str(cli_args.model), weights_only=False, map_location="cpu")
-    model_conf = ckpt["model_config"]
-    train_args = ckpt["cli_args"]
     device = torch.device(
         "cuda" if cli_args.use_gpu and torch.cuda.is_available() else "cpu"
     )
+
+    # 1) load checkpoint & model
+    ckpt = torch.load(cli_args.model, weights_only=False, map_location=device)
+    model_conf = ckpt["model_config"]
+    train_args = ckpt["cli_args"]
 
     model = USE_MODEL(**model_conf).to(device)
     model.load_state_dict(ckpt["model"], strict=True)
@@ -411,6 +379,40 @@ def main(cli_args):
     if profile_txt:
         print("\n".join(profile_txt))
     print(f"\nSaved figures → {cli_args.save_dir.resolve()}")
+
+
+def parse_args(args=None):
+    parser = argparse.ArgumentParser("Visualize results of captcha model")
+    parser.add_argument(
+        "-m", "--model", type=Path, required=True, help="checkpoint (.pth)"
+    )
+    parser.add_argument("-d", "--data", type=Path, required=True, help="image dir")
+    parser.add_argument(
+        "-n", "--num", type=int, default=500, help="num images to sample"
+    )
+    parser.add_argument("--seed", type=int, default=SEED)
+    parser.add_argument("--use-gpu", action="store_true", default=False)
+    parser.add_argument("--save-dir", type=Path, default=Path("./viz"))
+    parser.add_argument(
+        "--examples", type=int, default=16, help="# of annotated examples"
+    )
+    parser.add_argument(
+        "--grid-cols", type=int, default=8, help="grid columns for examples"
+    )
+    parser.add_argument(
+        "--topk", type=int, default=3, help="top-k to record per position"
+    )
+    parser.add_argument(
+        "--profile-model",
+        action="store_true",
+        default=True,
+        help="measure params/FLOPs/latency and save a txt",
+    )
+    parser.add_argument("--latency-batch", type=int, default=1)
+    parser.add_argument("--latency-runs", type=int, default=200)
+    parser.add_argument("--latency-warmup", type=int, default=20)
+
+    return parser.parse_args(args)
 
 
 if __name__ == "__main__":
