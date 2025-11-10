@@ -210,20 +210,19 @@ def _measure_latency(model, device, height, width, batch_size=1, warmup=20, runs
 # -----------------------------
 # Main eval/visualize
 # -----------------------------
-def main():
-    args = parse_args()
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
+def main(cli_args):
+    random.seed(cli_args.seed)
+    np.random.seed(cli_args.seed)
+    torch.manual_seed(cli_args.seed)
 
-    _ensure_dir(args.save_dir)
+    _ensure_dir(cli_args.save_dir)
 
     # 1) load checkpoint & model
-    ckpt = torch.load(str(args.model), weights_only=False, map_location="cpu")
+    ckpt = torch.load(str(cli_args.model), weights_only=False, map_location="cpu")
     model_conf = ckpt["model_config"]
     train_args = ckpt["cli_args"]
     device = torch.device(
-        "cuda" if args.use_gpu and torch.cuda.is_available() else "cpu"
+        "cuda" if cli_args.use_gpu and torch.cuda.is_available() else "cpu"
     )
 
     model = USE_MODEL(**model_conf).to(device)
@@ -231,12 +230,12 @@ def main():
     model.eval()
 
     # 2) collect images
-    paths_all = _load_images(args.data)
+    paths_all = _load_images(cli_args.data)
     if len(paths_all) == 0:
-        raise FileNotFoundError(f"No images in: {args.data}")
+        raise FileNotFoundError(f"No images in: {cli_args.data}")
 
-    if args.num > 0 and args.num < len(paths_all):
-        paths = random.sample(paths_all, k=args.num)
+    if cli_args.num > 0 and cli_args.num < len(paths_all):
+        paths = random.sample(paths_all, k=cli_args.num)
     else:
         paths = paths_all
 
@@ -290,9 +289,9 @@ def main():
 
         # Annotated examples
         ann = _annotate(img_fit.resize((MAX_W, MAX_H)), f"{label} -> {pred_str}", ok)
-        if ok and len(ex_images_ok) < args.examples // 2:
+        if ok and len(ex_images_ok) < cli_args.examples // 2:
             ex_images_ok.append(ann)
-        elif not ok and len(ex_images_ng) < args.examples // 2:
+        elif not ok and len(ex_images_ng) < cli_args.examples // 2:
             ex_images_ng.append(ann)
 
         acc_live = 100.0 * string_ok / max(1, total)
@@ -310,9 +309,9 @@ def main():
         ],
         "len_captcha": L,
         "charset": CHARSET,
-        "checkpoint": str(args.model),
+        "checkpoint": str(cli_args.model),
     }
-    (args.save_dir / "metrics.json").write_text(
+    (cli_args.save_dir / "metrics.json").write_text(
         json.dumps(metrics, indent=2), encoding="utf-8"
     )
 
@@ -324,7 +323,7 @@ def main():
     plt.xlabel("Position index")
     plt.ylabel("Accuracy (%)")
     plt.tight_layout()
-    plt.savefig(args.save_dir / "per_position_accuracy.png", dpi=160)
+    plt.savefig(cli_args.save_dir / "per_position_accuracy.png", dpi=160)
     plt.close()
 
     # (b) confusion matrix
@@ -339,7 +338,7 @@ def main():
     plt.yticks(ticks=np.arange(C), labels=list(CHARSET), fontsize=6)
     plt.colorbar(fraction=0.046, pad=0.04)
     plt.tight_layout()
-    plt.savefig(args.save_dir / "confusion_matrix.png", dpi=200)
+    plt.savefig(cli_args.save_dir / "confusion_matrix.png", dpi=200)
     plt.close()
 
     # (c) confidence hist (correct vs incorrect)
@@ -353,19 +352,19 @@ def main():
     plt.ylabel("Count")
     plt.legend()
     plt.tight_layout()
-    plt.savefig(args.save_dir / "confidence_hist.png", dpi=160)
+    plt.savefig(cli_args.save_dir / "confidence_hist.png", dpi=160)
     plt.close()
 
     # (d) examples grid
     ex_images = ex_images_ok + ex_images_ng
     if ex_images:
-        grid = _make_grid(ex_images, cols=args.grid_cols)
+        grid = _make_grid(ex_images, cols=cli_args.grid_cols)
         if grid is not None:
-            grid.save(args.save_dir / "examples_grid.png")
+            grid.save(cli_args.save_dir / "examples_grid.png")
 
     # 6) optional: model profile
     profile_txt = []
-    if args.profile_model:
+    if cli_args.profile_model:
         H = getattr(train_args, "height", MAX_H)
         W = getattr(train_args, "width", MAX_W)
         total_params, trainable_params = _count_parameters(model)
@@ -386,9 +385,9 @@ def main():
                 device=device,
                 height=H,
                 width=W,
-                batch_size=args.latency_batch,
-                warmup=args.latency_warmup,
-                runs=args.latency_runs,
+                batch_size=cli_args.latency_batch,
+                warmup=cli_args.latency_warmup,
+                runs=cli_args.latency_runs,
             )
             profile_txt.append(f"[LATENCY] bs={lat['bs']} runs={lat['runs']}")
             profile_txt.append(
@@ -398,7 +397,7 @@ def main():
             profile_txt.append(f"[LATENCY] failed: {e}")
 
     if profile_txt:
-        (args.save_dir / "model_profile.txt").write_text(
+        (cli_args.save_dir / "model_profile.txt").write_text(
             "\n".join(profile_txt), encoding="utf-8"
         )
 
@@ -411,8 +410,9 @@ def main():
     )
     if profile_txt:
         print("\n".join(profile_txt))
-    print(f"\nSaved figures → {args.save_dir.resolve()}")
+    print(f"\nSaved figures → {cli_args.save_dir.resolve()}")
 
 
 if __name__ == "__main__":
-    main()
+    cli_args = parse_args()
+    main(cli_args=cli_args)

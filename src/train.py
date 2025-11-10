@@ -1,6 +1,5 @@
 import random
 import argparse
-from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 from tqdm.auto import tqdm, trange
@@ -301,10 +300,7 @@ def main(cli_args):
         )
 
         # Save checkpoint
-        filename = (
-            cli_args.save_dir
-            / f"{cli_args.name}_epoch{epoch + 1:02}.pth"
-        )
+        filename = cli_args.save_dir / f"{cli_args.name}_epoch{epoch + 1:02}.pth"
         state = {
             "epoch": epoch + 1,
             "model": model.state_dict(),
