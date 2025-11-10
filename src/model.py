@@ -97,13 +97,12 @@ class CaptchaModelV22(nn.Module):
                 for i in range(len(blocks) - 1)
             ],
         )
+        self.dropout = nn.Dropout(dropout)
 
         cnn_output_size = self._infer_flatten_dim()
-
         self.classifier = nn.ModuleList(
             [nn.Linear(cnn_output_size, n_class) for _ in range(len_captcha)]
         )
-        self.dropout = nn.Dropout(0.10)
 
     @torch.no_grad()
     def _infer_flatten_dim(self) -> int:
