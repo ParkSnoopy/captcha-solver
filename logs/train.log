@@ -1,0 +1,49 @@
+# uv run src\train.py --seed 42 --data .\dist\ --blocks 32,64,128,512 --length 4 --lr 0.001 --wd 0.05 --batch-size 64 --epochs 10 --workers-n 2 --test-n 150
+
+
+Detect device: cpu
+Loading image paths…
+Building datasets…
+Building dataloaders…
+Loading model (CaptchaModel_v2.2)…
+Loss[Train]: 23.381169
+Loss[Valid]: 22.189351
+Accuracy: 0.00% (Total 150, Pass 0, Fail 150)
+Model saved: checkpoints\CaptchaModel_v2.2_epoch01.pth
+Loss[Train]: 9.005478
+Loss[Valid]: 8.830630
+Accuracy: 0.00% (Total 150, Pass 0, Fail 150)
+Model saved: checkpoints\CaptchaModel_v2.2_epoch02.pth
+Loss[Train]: 4.666014
+Loss[Valid]: 4.030326
+Accuracy: 5.33% (Total 150, Pass 8, Fail 142)
+Model saved: checkpoints\CaptchaModel_v2.2_epoch03.pth
+Loss[Train]: 1.512701
+Loss[Valid]: 1.313771
+Accuracy: 44.00% (Total 150, Pass 66, Fail 84)
+Model saved: checkpoints\CaptchaModel_v2.2_epoch04.pth
+Loss[Train]: 0.728274
+Loss[Valid]: 0.808459
+Accuracy: 74.00% (Total 150, Pass 111, Fail 39)
+Model saved: checkpoints\CaptchaModel_v2.2_epoch05.pth
+Loss[Train]: 0.306235
+Loss[Valid]: 0.440042
+Accuracy: 82.67% (Total 150, Pass 124, Fail 26)
+Model saved: checkpoints\CaptchaModel_v2.2_epoch06.pth
+Loss[Train]: 0.172105
+Loss[Valid]: 0.340353
+Accuracy: 88.00% (Total 150, Pass 132, Fail 18)
+Model saved: checkpoints\CaptchaModel_v2.2_epoch07.pth
+Loss[Train]: 0.230016
+Loss[Valid]: 0.244251
+Accuracy: 87.33% (Total 150, Pass 131, Fail 19)
+Model saved: checkpoints\CaptchaModel_v2.2_epoch08.pth
+Loss[Train]: 0.099699
+Loss[Valid]: 0.168620
+Accuracy: 94.67% (Total 150, Pass 142, Fail 8)
+Model saved: checkpoints\CaptchaModel_v2.2_epoch09.pth
+Loss[Train]: 0.087526
+Loss[Valid]: 0.127781
+Accuracy: 97.33% (Total 150, Pass 146, Fail 4)
+Model saved: checkpoints\CaptchaModel_v2.2_epoch10.pth
+Epoch: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 10/10 [09:13<00:00, 55.40s/epoch]

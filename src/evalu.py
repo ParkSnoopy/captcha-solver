@@ -1,6 +1,6 @@
+import random
 import argparse
 from pathlib import Path
-from random import choices
 from tqdm.auto import tqdm
 
 import torch
@@ -9,6 +9,7 @@ from PIL import Image
 
 from helper import TRANSFORM, fit_image, I2C
 from train import USE_MODEL
+from config import SEED
 
 
 def _is_file(path: Path) -> bool:
@@ -18,6 +19,12 @@ def _is_file(path: Path) -> bool:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Evaluate a CAPTCHA model checkpoint on images in a directory",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=SEED,
+        help="Random seed",
     )
     parser.add_argument(
         "-m",
@@ -65,6 +72,10 @@ def parse_args() -> argparse.Namespace:
 
 
 def main(cli_args):
+    random.seed(cli_args.seed)
+    np.random.seed(cli_args.seed)
+    torch.manual_seed(cli_args.seed)
+
     device = torch.device("cuda" if cli_args.use_gpu else "cpu")
 
     checkpoint = torch.load(cli_args.model, weights_only=False)
@@ -81,7 +92,7 @@ def main(cli_args):
         *list(cli_args.data.glob("*.jpeg")),
     ]
 
-    image_paths = choices(image_paths_as_list, k=cli_args.num)
+    image_paths = random.choices(image_paths_as_list, k=cli_args.num)
 
     evalu_len = len(image_paths[0].name.split(".")[0])
     train_len = train_args.length

@@ -157,8 +157,8 @@ def parse_args(args=None):
     parser.add_argument(
         "--name",
         type=str,
-        default="v2.2",
-        help="Model name tag for checkpoint filenames (default: 'v2.2')",
+        default="CaptchaModel_v2.2",
+        help="Model name tag for checkpoint filenames",
     )
     parser.add_argument(
         "--use-gpu",
@@ -303,7 +303,7 @@ def main(cli_args):
         # Save checkpoint
         filename = (
             cli_args.save_dir
-            / f"{datetime.now(tz=cli_args.timezone).strftime('%Y%m%d_%H%M')}_epoch{epoch + 1:02}_on_{cli_args.name}.pth"
+            / f"{cli_args.name}_epoch{epoch + 1:02}.pth"
         )
         state = {
             "epoch": epoch + 1,
