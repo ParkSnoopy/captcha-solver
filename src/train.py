@@ -107,7 +107,7 @@ def parse_args():
     parser.add_argument(
         "--wd",
         type=float,
-        default=0.5,
+        default=0.05,
         help="Weight decay",
     )
 
