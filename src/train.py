@@ -30,8 +30,8 @@ USE_MODEL = CaptchaModelV22
 USE_DATASET = CaptchaDatasetV22
 
 
-def _ensure_dirs():
-    Path(DIR_CHECKPOINT).mkdir(parents=True, exist_ok=True)
+def _ensure_dirs(path: Path):
+    path.mkdir(parents=True, exist_ok=True)
 
 
 def _make_loader(cli_args, dataset, shuffle: bool):
@@ -185,7 +185,7 @@ def main(cli_args):
     device = torch.device("cude" if cli_args.use_gpu else "cpu")
 
     tqdm.write(f"Detect device: {device}")
-    _ensure_dirs()
+    _ensure_dirs(cli_args.save_dir)
 
     # Data discovery
     tqdm.write("Loading image paths…")
