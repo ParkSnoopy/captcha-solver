@@ -4,12 +4,9 @@ version = "0.2.2"
 description = "CAPTCHA solver AI"
 requires-python = ">=3.13"
 dependencies = [
-    # feature: Data Cleaning
-    #"matplotlib",
-    #"notebook",
-
     # feature: frontend
     "questionary",
+    "argparse",
     "tqdm",
 
     # feature: computate

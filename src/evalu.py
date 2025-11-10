@@ -1,63 +1,100 @@
 from pathlib import Path
 from random import choices
+import argparse
 
 import numpy as np
-import questionary
 import torch
 from PIL import Image
 
-from config import DEVICE, RAW_TENSOR, TRAINED_DIR, DATA_DIR
 from helper import TRANSFORM, fit_image, I2C
 from train import USE_MODEL
 
 
-def _is_file(path: str) -> bool:
-    return Path(path).is_file()
+def _is_file(path: Path) -> bool:
+    return path.is_file()
 
 
-def main():
-    model_file_path = questionary.path(
-        "Select model to use", default=str(TRAINED_DIR), validate=_is_file
-    ).ask()
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Evaluate a CAPTCHA model checkpoint on images in a directory",
+    )
+    parser.add_argument(
+        "-m",
+        "--model",
+        type=Path,
+        required=True,
+        help="Path to a `PyTorch` checkpoint",
+    )
+    parser.add_argument(
+        "-d",
+        "--data",
+        type=Path,
+        required=True,
+        help="Directory of images",
+    )
+    parser.add_argument(
+        "-n",
+        "--num",
+        type=int,
+        default=10,
+        help="Number of images to evaluate (default: 10)",
+    )
+    parser.add_argument(
+        "--use-gpu",
+        action="store_true",
+        default=False,
+        help="Use GPU",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Verbose output",
+    )
+    parser.add_argument(
+        "-vv",
+        "--raw-tensor",
+        action="store_true",
+        default=False,
+        help="Verbose output (debugging raw tensor)",
+    )
 
-    checkpoint = torch.load(model_file_path, map_location=DEVICE)
+    return parser.parse_args()
+
+
+def main(cli_args):
+    device = torch.device("cude" if cli_args.use_gpu else "cpu")
+
+    checkpoint = torch.load(cli_args.model, map_location=device)
     print(checkpoint["args"])
-    model = USE_MODEL(**checkpoint["args"]["model_config"])
+    model = USE_MODEL(
+        **(checkpoint["args"]["model_config"])
+    )
     model.load_state_dict(checkpoint["model"], strict=True)
-    model.to(DEVICE).eval()
+    model.to(device).eval()
 
-    evaluation_file_dir = Path(
-        questionary.path(
-            "Select image directory to evaluate", default=str(DATA_DIR)
-        ).ask()
-    )
-    evaluation_n = int(
-        questionary.text(
-            "How many images to evaluate",
-            default="10",
-        ).ask()
-    )
+    image_paths_as_list = [
+        *list(cli_args.data.glob("*.png")),
+        *list(cli_args.data.glob("*.jpg")),
+        *list(cli_args.data.glob("*.jpeg")),
+    ]
 
-    evaluation_file_paths = choices(
-        list(evaluation_file_dir.glob("*.png"))
-        + list(evaluation_file_dir.glob("*.jpg"))
-        + list(evaluation_file_dir.glob("*.jpeg")),
-        k=evaluation_n,
-    )
+    image_paths = choices(image_paths_as_list, k=cli_args.num)
 
-    evalu_len = len(evaluation_file_paths[0].name.split('.')[0])
+    evalu_len = len(image_paths[0].name.split(".")[0])
     train_len = checkpoint["args"]["model_config"]["len_captcha"]
     if evalu_len != train_len:
         raise ValueError(f"Trained for length `{train_len}`, but got `{evalu_len}`")
 
-    for img_path in evaluation_file_paths:
+    for img_path in image_paths:
         img = Image.open(img_path)
         img = fit_image(img)
-        x = TRANSFORM(img).unsqueeze(0).to(DEVICE)
+        x = TRANSFORM(img).unsqueeze(0).to(device)
 
         with torch.no_grad():
             pred = model(x)
-            if RAW_TENSOR:
+            if cli_args.raw_tensor:
                 print("\n  < RAW TENSOR >\n", pred, "\n")
 
         pred = pred.detach().cpu().numpy()
@@ -66,4 +103,5 @@ def main():
 
 
 if __name__ in {"__main__", "__mp_main__"}:
-    main()
+    cli_args = parse_args()
+    main(cli_args=cli_args)
