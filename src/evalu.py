@@ -6,7 +6,7 @@ import questionary
 import torch
 from PIL import Image
 
-from config import DEVICE, RAW_TENSOR, TRAINED_DIR, DATA_DIR, MODEL_CONFIG
+from config import DEVICE, RAW_TENSOR, TRAINED_DIR, DATA_DIR
 from helper import TRANSFORM, fit_image, I2C
 from train import USE_MODEL
 

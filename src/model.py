@@ -69,7 +69,11 @@ class ConvBlockV22(nn.Module):
 
 class CaptchaModelV22(nn.Module):
     def __init__(
-        self, n_class: int, len_captcha: int, blocks=[32, 64, 128, 256], dropout=0.1,
+        self,
+        n_class: int,
+        len_captcha: int,
+        blocks=[32, 64, 128, 256],
+        dropout=0.1,
     ):
         super().__init__()
         self.len_captcha = len_captcha

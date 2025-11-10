@@ -31,6 +31,11 @@ LENGTH = 4
 MODEL_CONFIG = {
     "n_class": len(CHARSET),
     "len_captcha": LENGTH,
-    #          100 50   25   12    6     ...
-    "blocks": [64, 256, 512, 2048, ],
+    "blocks": [
+                # image size (//2)
+        64,     # 100
+        256,    # 50
+        512,    # 25
+        2048,   # 13
+    ],
 }
