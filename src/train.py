@@ -182,7 +182,7 @@ def main(cli_args):
     np.random.seed(cli_args.seed)
     torch.manual_seed(cli_args.seed)
 
-    device = torch.device("cude" if cli_args.use_gpu else "cpu")
+    device = torch.device("cuda" if cli_args.use_gpu else "cpu")
 
     tqdm.write(f"Detect device: {device}")
     _ensure_dirs(cli_args.save_dir)

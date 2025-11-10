@@ -65,7 +65,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main(cli_args):
-    device = torch.device("cude" if cli_args.use_gpu else "cpu")
+    device = torch.device("cuda" if cli_args.use_gpu else "cpu")
 
     checkpoint = torch.load(cli_args.model, weights_only=False)
     model_conf = checkpoint["model_config"]
