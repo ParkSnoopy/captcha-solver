@@ -5,8 +5,8 @@ import torch.nn as nn
 from torch.utils.data import Dataset
 from PIL import Image
 
-from .helper import C2I
-from .config import MAX_W, MAX_H
+from helper import C2I
+from config import MAX_W, MAX_H
 
 
 class CaptchaDatasetV22(Dataset):
@@ -107,6 +107,63 @@ class CaptchaModelV22(nn.Module):
     @torch.no_grad()
     def _infer_flatten_dim(self) -> int:
         dummy = torch.zeros(1, 3, MAX_H, MAX_W)
+        y = self.cnn(dummy)
+        return int(y.numel())
+
+    def forward(self, x):
+        feat = self.cnn(x)
+        feat = feat.view(x.size(0), -1)
+        feat = self.dropout(feat)
+        return torch.stack([head(feat) for head in self.classifier], dim=1)
+
+
+class GeneralModelV23(nn.Module):
+    def __init__(
+        self,
+        in_channels: int,
+        in_width: int,
+        in_height: int,
+        class_n: int,
+        output_len: int,
+        blocks=[32, 64, 128, 256],
+        dropout=0.1,
+    ):
+        super().__init__()
+        self.in_width = in_width
+        self.in_height = in_height
+        self.in_channels = in_channels
+
+        self.class_n = class_n
+        self.output_len = output_len
+
+        # Start from channel=3 (RGB layer)
+        self.cnn = nn.Sequential(
+            ConvBlockV22(
+                channels_in=self.in_channels,
+                channels_out=blocks[0],
+                dropout=dropout,
+                stride=1,
+            ),
+            *[
+                ConvBlockV22(
+                    channels_in=blocks[i],
+                    channels_out=blocks[i + 1],
+                    dropout=dropout,
+                    stride=2,
+                )
+                for i in range(len(blocks) - 1)
+            ],
+        )
+        self.dropout = nn.Dropout(dropout)
+
+        cnn_output_size = self._infer_flatten_dim()
+        self.classifier = nn.ModuleList(
+            [nn.Linear(cnn_output_size, self.class_n) for _ in range(self.output_len)]
+        )
+
+    @torch.no_grad()
+    def _infer_flatten_dim(self) -> int:
+        dummy = torch.zeros(1, self.in_channels, self.in_height, self.in_width)
         y = self.cnn(dummy)
         return int(y.numel())
 
